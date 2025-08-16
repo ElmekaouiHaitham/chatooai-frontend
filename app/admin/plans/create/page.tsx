@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminNavigation from '../../../../components/AdminNavigation';
 import ProtectedRoute from '../../../../components/ProtectedRoute';
+import { createPlan } from '../../../../lib/firebase';
 
 interface PlanFormData {
   name: string;
@@ -23,6 +25,8 @@ interface PlanFormData {
 
 export default function CreatePlanPage() {
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
   const [formData, setFormData] = useState<PlanFormData>({
     name: '',
     description: '',
@@ -71,12 +75,43 @@ export default function CreatePlanPage() {
   };
 
   const handleCreatePlan = async () => {
-    setIsCreating(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsCreating(false);
-    // Redirect to plans page
-    window.location.href = '/admin/plans';
+    if (!formData.name.trim()) {
+      setError('Plan name is required');
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      setError('');
+
+      // Prepare plan data for Firebase
+      const planData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        price: formData.price,
+        billingCycle: formData.billingCycle,
+        status: formData.status,
+        features: formData.features,
+        limits: {
+          bots: formData.isUnlimited ? -1 : formData.limits.bots,
+          messagesPerDay: formData.isUnlimited ? -1 : formData.limits.messagesPerDay,
+          storage: formData.limits.storage,
+          teamMembers: formData.limits.teamMembers
+        },
+        isPopular: formData.isPopular,
+        isUnlimited: formData.isUnlimited,
+        users: 0,
+        revenue: 0
+      };
+
+      await createPlan(planData);
+      router.push('/admin/plans');
+    } catch (err: any) {
+      console.error('Error creating plan:', err);
+      setError(err.message || 'Failed to create plan. Please try again.');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -107,6 +142,22 @@ export default function CreatePlanPage() {
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          {error && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">Error</h3>
+                  <div className="mt-2 text-sm text-red-700">{error}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Basic Information */}
             <div className="space-y-6">

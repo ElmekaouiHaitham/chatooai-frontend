@@ -141,11 +141,11 @@ export default function AdminUsersPage() {
     <ProtectedRoute adminOnly={true}>
       <div className="min-h-screen bg-gray-50">
         <AdminNavigation currentPage="users" />
-        
+      
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-semibold text-gray-900">User Management</h1>
+              <h1 className="text-3xl font-semibold text-gray-900">User Management</h1>
             <p className="text-gray-600 mt-2">Manage all users and their accounts</p>
           </div>
 
@@ -156,57 +156,57 @@ export default function AdminUsersPage() {
                   <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                </div>
+            </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800">Error</h3>
                   <div className="mt-2 text-sm text-red-700">{error}</div>
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
           )}
 
           {/* Filters */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-                <input
-                  type="text"
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+              <input
+                type="text"
                   placeholder="Search by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="suspended">Suspended</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Plan</label>
-                <select
-                  value={planFilter}
-                  onChange={(e) => setPlanFilter(e.target.value)}
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="suspended">Suspended</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Plan</label>
+              <select
+                value={planFilter}
+                onChange={(e) => setPlanFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                >
-                  <option value="all">All Plans</option>
-                  <option value="Free">Free</option>
-                  <option value="Pro">Pro</option>
-                  <option value="Business">Business</option>
-                </select>
-              </div>
-              
+              >
+                <option value="all">All Plans</option>
+                <option value="Free">Free</option>
+                <option value="Pro">Pro</option>
+                <option value="Business">Business</option>
+              </select>
+            </div>
+            
               <div className="flex items-end">
                 <button
                   onClick={fetchUsers}
@@ -214,22 +214,22 @@ export default function AdminUsersPage() {
                 >
                   Refresh
                 </button>
-              </div>
             </div>
           </div>
+        </div>
 
-          {/* Users Table */}
+        {/* Users Table */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-lg font-medium text-gray-900">
                 Users ({filteredUsers.length})
               </h2>
-            </div>
-            
-            <div className="overflow-x-auto">
+          </div>
+          
+          <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
+              <thead className="bg-gray-50">
+                <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       User
                     </th>
@@ -254,8 +254,8 @@ export default function AdminUsersPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
-                  </tr>
-                </thead>
+                </tr>
+              </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredUsers.map((user) => (
                     <tr key={user.uid} className="hover:bg-gray-50">
@@ -263,31 +263,31 @@ export default function AdminUsersPage() {
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
                             <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                              <span className="text-sm font-medium text-green-600">
+                          <span className="text-sm font-medium text-green-600">
                                 {user.displayName?.charAt(0) || user.email.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
+                          </span>
+                        </div>
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
                               {user.displayName || 'No Name'}
                             </div>
                             <div className="text-sm text-gray-500">{user.email}</div>
-                          </div>
                         </div>
-                      </td>
+                      </div>
+                    </td>
                       
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPlanColor(user.plan || 'Free')}`}>
                           {user.plan || 'Free'}
-                        </span>
-                      </td>
+                      </span>
+                    </td>
                       
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status || 'active')}`}>
                           {user.status || 'active'}
-                        </span>
-                      </td>
+                      </span>
+                    </td>
                       
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {user.bots || 0}
@@ -315,11 +315,11 @@ export default function AdminUsersPage() {
                         >
                           Edit
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             </div>
             
             {filteredUsers.length === 0 && (
@@ -383,7 +383,7 @@ export default function AdminUsersPage() {
                       <option value="inactive">Inactive</option>
                     </select>
                   </div>
-                </div>
+          </div>
                 
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
@@ -391,19 +391,19 @@ export default function AdminUsersPage() {
                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
                     Cancel
-                  </button>
+            </button>
                   <button
                     onClick={() => setShowUserModal(false)}
                     className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700"
                   >
                     Save Changes
-                  </button>
-                </div>
-              </div>
-            </div>
+            </button>
+          </div>
+        </div>
+      </div>
           </div>
         )}
-      </div>
+    </div>
     </ProtectedRoute>
   );
 } 

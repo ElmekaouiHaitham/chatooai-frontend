@@ -1,41 +1,58 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import BotCard from '../../components/BotCard';
 import Navigation from '../../components/Navigation';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useAuth } from '../../contexts/AuthContext';
-
-// Mock data for demonstration
-const mockBots = [
-  {
-    id: '1',
-    title: 'Customer Support Bot',
-    description: 'Handles customer inquiries and support tickets',
-    status: 'connected' as const,
-    lastActive: '2 hours ago',
-    messageCount: 156
-  },
-  {
-    id: '2',
-    title: 'Sales Assistant',
-    description: 'Qualifies leads and answers product questions',
-    status: 'disconnected' as const,
-    lastActive: '1 day ago',
-    messageCount: 89
-  },
-  {
-    id: '3',
-    title: 'Appointment Scheduler',
-    description: 'Books appointments and manages calendar',
-    status: 'connecting' as const,
-    lastActive: '5 minutes ago',
-    messageCount: 234
-  }
-];
+import { getUserBots, BotData, getCurrentUserData, testFirestoreAccess } from '../../lib/firebase';
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const bots = mockBots; // In real app, this would come from API/state
+  const [bots, setBots] = useState<BotData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchBots = async () => {
+      if (!user) {
+        console.log('No user found, skipping bot fetch');
+        return;
+      }
+      
+      console.log(`Starting to fetch bots for user: ${user.uid}`);
+      
+      try {
+        setLoading(true);
+        setError(''); // Clear any previous errors
+        const userBots = await getUserBots(user.uid);
+        console.log(`Successfully fetched ${userBots.length} bots for user ${user.uid}:`, userBots);
+        setBots(userBots);
+      } catch (err) {
+        console.error('Error fetching bots:', err);
+        
+        // Provide more specific error messages
+        let errorMessage = 'Failed to load bots';
+        if (err instanceof Error) {
+          if (err.message.includes('permission-denied')) {
+            errorMessage = 'Access denied. Please check your permissions.';
+          } else if (err.message.includes('unavailable')) {
+            errorMessage = 'Service temporarily unavailable. Please try again.';
+          } else if (err.message.includes('not-found')) {
+            errorMessage = 'No bots found. Create your first bot to get started!';
+          } else {
+            errorMessage = `Error: ${err.message}`;
+          }
+        }
+        
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBots();
+  }, [user]);
 
   return (
     <ProtectedRoute>
@@ -70,7 +87,29 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-6 py-8">
-          {bots.length > 0 ? (
+          
+
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="flex items-center space-x-2">
+                <svg className="animate-spin h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-gray-600">Loading bots...</span>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="text-red-600 mb-4">{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : bots.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {bots.map((bot) => (
                 <BotCard key={bot.id} bot={bot} />

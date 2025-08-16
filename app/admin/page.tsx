@@ -96,19 +96,22 @@ const recentBots = [
 export default function AdminDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('30d');
   const [recentUsers, setRecentUsers] = useState<UserData[]>([]);
+  const [allUsers, setAllUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchRecentUsers();
+    fetchDashboardData();
   }, []);
 
-  const fetchRecentUsers = async () => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const allUsers = await getAllUsers();
+      const users = await getAllUsers();
+      setAllUsers(users);
+      
       // Sort by joined date (most recent first) and take the first 5
-      const sortedUsers = allUsers
+      const sortedUsers = users
         .sort((a, b) => {
           const dateA = a.joined?.toDate ? a.joined.toDate() : (a.joined ? new Date(a.joined as any) : new Date(0));
           const dateB = b.joined?.toDate ? b.joined.toDate() : (b.joined ? new Date(b.joined as any) : new Date(0));
@@ -117,12 +120,45 @@ export default function AdminDashboard() {
         .slice(0, 5);
       setRecentUsers(sortedUsers);
     } catch (err) {
-      console.error('Error fetching recent users:', err);
-      setError('Failed to fetch recent users');
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to fetch dashboard data');
     } finally {
       setLoading(false);
     }
   };
+
+  // Calculate real KPIs from user data
+  const calculateKPIs = () => {
+    const totalUsers = allUsers.length;
+    const activeUsers = allUsers.filter(user => user.status === 'active').length;
+    const totalRevenue = allUsers.reduce((sum, user) => sum + (user.revenue || 0), 0);
+    
+    // Calculate user growth (users joined in last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentUsers = allUsers.filter(user => {
+      const joinedDate = user.joined?.toDate ? user.joined.toDate() : new Date(0);
+      return joinedDate > thirtyDaysAgo;
+    }).length;
+    
+    // Calculate growth percentage (simplified)
+    const userGrowth = totalUsers > 0 ? Math.round((recentUsers / totalUsers) * 100) : 0;
+    
+    return {
+      totalUsers,
+      activeUsers,
+      totalRevenue,
+      userGrowth,
+      // Mock data for other metrics (can be replaced with real data later)
+      totalBots: allUsers.reduce((sum, user) => sum + (user.bots || 0), 0),
+      activeConversations: Math.floor(Math.random() * 50) + 20, // Mock for now
+      botGrowth: 18,
+      revenueGrowth: 12,
+      conversationGrowth: 8
+    };
+  };
+
+  const kpiData = calculateKPIs();
 
   const formatTimeAgo = (timestamp: any) => {
     if (!timestamp) return 'N/A';

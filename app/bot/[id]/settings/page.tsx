@@ -1,458 +1,428 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Navigation from '../../../../components/Navigation';
+import ProtectedRoute from '../../../../components/ProtectedRoute';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { getBotById, updateBot, deleteBot, BotData } from '../../../../lib/firebase';
 
-// Mock data - in real app this would come from API
-const getBotData = (id: string) => {
-  const bots = {
-    '1': {
-      id: '1',
-      name: 'Customer Support Bot',
-      description: 'Handles customer inquiries and support tickets',
-      status: 'connected' as const,
-      lastActive: '2 hours ago',
-      messageCount: 156,
-      avatar: '🎧',
-      aiModel: 'gpt-4',
-      personality: 'professional',
-      autoReply: true,
-      workingHours: {
-        enabled: true,
-        start: '09:00',
-        end: '17:00',
-        timezone: 'UTC'
-      },
-      features: {
-        fileSharing: true,
-        voiceMessages: false,
-        quickReplies: true,
-        analytics: true
+export default function BotSettingsPage() {
+  const { user } = useAuth();
+  const params = useParams();
+  const router = useRouter();
+  const [bot, setBot] = useState<BotData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [formData, setFormData] = useState<Partial<BotData>>({});
+
+  useEffect(() => {
+    const fetchBot = async () => {
+      try {
+        if (typeof params.id === 'string') {
+          const botData = await getBotById(params.id);
+          if (botData) {
+            setBot(botData);
+            setFormData({
+              name: botData.name,
+              description: botData.description,
+              avatar: botData.avatar,
+              aiModel: botData.aiModel,
+              personality: botData.personality,
+              autoReply: botData.autoReply,
+              workingHours: { ...botData.workingHours },
+              features: { ...botData.features }
+            });
+          } else {
+            setError('Bot not found');
+          }
+        }
+      } catch (err) {
+        setError('Failed to load bot');
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-    },
-    '2': {
-      id: '2',
-      name: 'Sales Assistant',
-      description: 'Qualifies leads and answers product questions',
-      status: 'disconnected' as const,
-      lastActive: '1 day ago',
-      messageCount: 89,
-      avatar: '💼',
-      aiModel: 'claude-3',
-      personality: 'friendly',
-      autoReply: true,
+    };
+
+    fetchBot();
+  }, [params.id]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
+  };
+
+  const handleWorkingHoursChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
       workingHours: {
-        enabled: false,
-        start: '09:00',
-        end: '17:00',
-        timezone: 'UTC'
-      },
-      features: {
-        fileSharing: false,
-        voiceMessages: false,
-        quickReplies: true,
-        analytics: true
+        ...prev.workingHours!,
+        [field]: value
       }
-    },
-    '3': {
-      id: '3',
-      name: 'Appointment Scheduler',
-      description: 'Books appointments and manages calendar',
-      status: 'connecting' as const,
-      lastActive: '5 minutes ago',
-      messageCount: 234,
-      avatar: '📅',
-      aiModel: 'gpt-3.5',
-      personality: 'formal',
-      autoReply: false,
-      workingHours: {
-        enabled: true,
-        start: '08:00',
-        end: '18:00',
-        timezone: 'UTC'
-      },
+    }));
+  };
+
+  const handleFeatureToggle = (feature: string) => {
+    setFormData(prev => ({
+      ...prev,
       features: {
-        fileSharing: true,
-        voiceMessages: true,
-        quickReplies: false,
-        analytics: true
+        ...prev.features!,
+        [feature]: !prev.features![feature as keyof typeof prev.features]
       }
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!bot) return;
+
+    try {
+      setSaving(true);
+      setError('');
+
+      const updateData: Partial<BotData> = {
+        name: formData.name!,
+        description: formData.description!,
+        avatar: formData.avatar!,
+        aiModel: formData.aiModel!,
+        personality: formData.personality!,
+        autoReply: formData.autoReply!,
+        workingHours: formData.workingHours!,
+        features: formData.features!
+      };
+
+      await updateBot(bot.id, updateData);
+      
+      // Update local state
+      setBot(prev => prev ? { ...prev, ...updateData } : null);
+      
+      // Show success message
+      alert('Bot settings saved successfully!');
+    } catch (err) {
+      console.error('Failed to save bot:', err);
+      setError('Failed to save bot settings');
+    } finally {
+      setSaving(false);
     }
   };
-  
-  return bots[id as keyof typeof bots] || null;
-};
 
-interface BotSettingsPageProps {
-  params: {
-    id: string;
+  const handleDelete = async () => {
+    if (!bot) return;
+
+    try {
+      setSaving(true);
+      setError('');
+
+      // Delete from WhatsApp service
+      // TODO: Uncomment when WhatsApp service is implemented
+      // await whatsappService.deleteBot(bot.id);
+      
+      // Delete from Firebase
+      await deleteBot(bot.id, bot.uid);
+      
+      // Redirect to dashboard
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Failed to delete bot:', err);
+      setError('Failed to delete bot');
+      setSaving(false);
+    }
   };
-}
 
-export default function BotSettingsPage({ params }: BotSettingsPageProps) {
-  const bot = getBotData(params.id);
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [formData, setFormData] = useState(bot ? {
-    name: bot.name,
-    description: bot.description,
-    aiModel: bot.aiModel,
-    personality: bot.personality,
-    autoReply: bot.autoReply,
-    workingHours: { ...bot.workingHours },
-    features: { ...bot.features }
-  } : null);
-
-  if (!bot || !formData) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />
-        <div className="max-w-4xl mx-auto px-6 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-semibold text-gray-900 mb-4">Bot Not Found</h1>
-            <p className="text-gray-600 mb-6">The bot you're looking for doesn't exist.</p>
-            <a 
-              href="/dashboard" 
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !bot) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="max-w-4xl mx-auto py-8 px-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Bot Not Found</h1>
+            <p className="text-gray-600 mb-6">{error || 'The bot you are looking for does not exist.'}</p>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Back to Dashboard
-            </a>
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev!, [field]: value }));
-    setHasChanges(true);
-  };
-
-  const handleWorkingHoursChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev!,
-      workingHours: { ...prev!.workingHours, [field]: value }
-    }));
-    setHasChanges(true);
-  };
-
-  const handleFeatureToggle = (feature: string, value: boolean) => {
-    setFormData(prev => ({
-      ...prev!,
-      features: { ...prev!.features, [feature]: value }
-    }));
-    setHasChanges(true);
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    setHasChanges(false);
-    // Show success message
-    alert('Settings saved successfully!');
-  };
-
-  const aiModels = [
-    { id: 'gpt-4', name: 'GPT-4', description: 'Most advanced model, best for complex tasks' },
-    { id: 'gpt-3.5', name: 'GPT-3.5', description: 'Fast and efficient, good for most use cases' },
-    { id: 'claude-3', name: 'Claude 3', description: 'Excellent for analysis and reasoning' },
-    { id: 'custom', name: 'Custom Model', description: 'Use your own trained model' }
-  ];
-
-  const personalities = [
-    { id: 'professional', name: 'Professional', description: 'Formal and business-like' },
-    { id: 'friendly', name: 'Friendly', description: 'Warm and approachable' },
-    { id: 'casual', name: 'Casual', description: 'Relaxed and informal' },
-    { id: 'formal', name: 'Formal', description: 'Strict and structured' }
-  ];
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation />
-      
-      {/* Page Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <a 
-                href={`/bot/${bot.id}`}
-                className="text-gray-600 hover:text-green-500 transition-colors"
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        
+        <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Bot Settings</h1>
+                <p className="text-gray-600">Configure your WhatsApp bot</p>
+              </div>
+              <button
+                onClick={() => router.push(`/bot/${bot.id}`)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
               >
-                ← Back to Bot
-              </a>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <span className="text-xl">{bot.avatar}</span>
-                </div>
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
-                  <p className="text-sm text-gray-600">{bot.name}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="space-y-6">
-          {/* Basic Information */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Basic Information</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Bot Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="Enter bot name"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">AI Model</label>
-                <select
-                  value={formData.aiModel}
-                  onChange={(e) => handleInputChange('aiModel', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  {aiModels.map((model) => (
-                    <option key={model.id} value={model.id}>
-                      {model.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {aiModels.find(m => m.id === formData.aiModel)?.description}
-                </p>
-              </div>
-            </div>
-            
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Describe what this bot does..."
-              />
+                Back to Bot
+              </button>
             </div>
           </div>
 
-          {/* Personality & Behavior */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Personality & Behavior</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Personality</label>
-                <select
-                  value={formData.personality}
-                  onChange={(e) => handleInputChange('personality', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  {personalities.map((personality) => (
-                    <option key={personality.id} value={personality.id}>
-                      {personality.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {personalities.find(p => p.id === formData.personality)?.description}
-                </p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Auto-Reply</label>
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => handleInputChange('autoReply', !formData.autoReply)}
-                    className={`w-12 h-6 rounded-full transition-colors ${
-                      formData.autoReply ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
-                      formData.autoReply ? 'transform translate-x-6' : 'transform translate-x-1'
-                    }`} />
-                  </button>
-                  <span className="text-sm text-gray-600">
-                    {formData.autoReply ? 'Enabled' : 'Disabled'}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Automatically respond to messages when offline
-                </p>
-              </div>
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-red-800">{error}</p>
             </div>
-          </div>
+          )}
 
-          {/* Working Hours */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Working Hours</h2>
-            
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => handleWorkingHoursChange('enabled', !formData.workingHours.enabled)}
-                  className={`w-12 h-6 rounded-full transition-colors ${
-                    formData.workingHours.enabled ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
-                >
-                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
-                    formData.workingHours.enabled ? 'transform translate-x-6' : 'transform translate-x-1'
-                  }`} />
-                </button>
-                <span className="text-sm font-medium text-gray-700">Enable working hours</span>
-              </div>
-              
-              {formData.workingHours.enabled && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Basic Settings */}
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Basic Information</h2>
+                
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bot Name *
+                    </label>
                     <input
-                      type="time"
-                      value={formData.workingHours.start}
-                      onChange={(e) => handleWorkingHoursChange('start', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      type="text"
+                      name="name"
+                      value={formData.name || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
                     />
                   </div>
-                  
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
-                    <input
-                      type="time"
-                      value={formData.workingHours.end}
-                      onChange={(e) => handleWorkingHoursChange('end', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description || ''}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Avatar URL
+                    </label>
+                    <input
+                      type="url"
+                      name="avatar"
+                      value={formData.avatar || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="https://example.com/avatar.png"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">AI Configuration</h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      AI Model
+                    </label>
                     <select
-                      value={formData.workingHours.timezone}
-                      onChange={(e) => handleWorkingHoursChange('timezone', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      name="aiModel"
+                      value={formData.aiModel || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="UTC">UTC</option>
-                      <option value="EST">EST</option>
-                      <option value="PST">PST</option>
-                      <option value="GMT">GMT</option>
+                      <option value="gpt-4">GPT-4</option>
+                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                      <option value="claude-3">Claude 3</option>
+                      <option value="gemini-pro">Gemini Pro</option>
                     </select>
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Personality
+                    </label>
+                    <select
+                      name="personality"
+                      value={formData.personality || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="friendly">Friendly</option>
+                      <option value="professional">Professional</option>
+                      <option value="casual">Casual</option>
+                      <option value="formal">Formal</option>
+                      <option value="humorous">Humorous</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="autoReply"
+                      name="autoReply"
+                      checked={formData.autoReply || false}
+                      onChange={handleInputChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="autoReply" className="ml-2 block text-sm text-gray-900">
+                      Enable automatic responses
+                    </label>
+                  </div>
                 </div>
-              )}
+              </div>
+            </div>
+
+            {/* Advanced Settings */}
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Working Hours</h2>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="workingHoursEnabled"
+                      checked={formData.workingHours?.enabled || false}
+                      onChange={(e) => handleWorkingHoursChange('enabled', e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="workingHoursEnabled" className="ml-2 block text-sm text-gray-900">
+                      Set working hours
+                    </label>
+                  </div>
+
+                  {formData.workingHours?.enabled && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                        <input
+                          type="time"
+                          value={formData.workingHours?.start || '09:00'}
+                          onChange={(e) => handleWorkingHoursChange('start', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                        <input
+                          type="time"
+                          value={formData.workingHours?.end || '17:00'}
+                          onChange={(e) => handleWorkingHoursChange('end', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Features</h2>
+                
+                <div className="space-y-3">
+                  {Object.entries(formData.features || {}).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </span>
+                      <input
+                        type="checkbox"
+                        id={key}
+                        checked={value || false}
+                        onChange={() => handleFeatureToggle(key)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Danger Zone</h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Once you delete a bot, there is no going back. Please be certain.
+                    </p>
+                    <button
+                      onClick={() => setShowDeleteModal(true)}
+                      className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                    >
+                      Delete Bot
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Features */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Features</h2>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <h3 className="font-medium text-gray-900">File Sharing</h3>
-                  <p className="text-sm text-gray-600">Allow users to send and receive files</p>
-                </div>
+          {/* Save Button */}
+          <div className="mt-8 flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Delete Bot</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete "{bot.name}"? This action cannot be undone.
+              </p>
+              <div className="flex space-x-3">
                 <button
-                  onClick={() => handleFeatureToggle('fileSharing', !formData.features.fileSharing)}
-                  className={`w-12 h-6 rounded-full transition-colors ${
-                    formData.features.fileSharing ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
                 >
-                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
-                    formData.features.fileSharing ? 'transform translate-x-6' : 'transform translate-x-1'
-                  }`} />
+                  Cancel
                 </button>
-              </div>
-              
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <h3 className="font-medium text-gray-900">Voice Messages</h3>
-                  <p className="text-sm text-gray-600">Support for voice message transcription</p>
-                </div>
                 <button
-                  onClick={() => handleFeatureToggle('voiceMessages', !formData.features.voiceMessages)}
-                  className={`w-12 h-6 rounded-full transition-colors ${
-                    formData.features.voiceMessages ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
+                  onClick={handleDelete}
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
-                    formData.features.voiceMessages ? 'transform translate-x-6' : 'transform translate-x-1'
-                  }`} />
-                </button>
-              </div>
-              
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div>
-                  <h3 className="font-medium text-gray-900">Quick Replies</h3>
-                  <p className="text-sm text-gray-600">Pre-defined response templates</p>
-                </div>
-                <button
-                  onClick={() => handleFeatureToggle('quickReplies', !formData.features.quickReplies)}
-                  className={`w-12 h-6 rounded-full transition-colors ${
-                    formData.features.quickReplies ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
-                >
-                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
-                    formData.features.quickReplies ? 'transform translate-x-6' : 'transform translate-x-1'
-                  }`} />
-                </button>
-              </div>
-              
-              <div className="flex items-center justify-between py-3">
-                <div>
-                  <h3 className="font-medium text-gray-900">Analytics</h3>
-                  <p className="text-sm text-gray-600">Track conversation metrics and insights</p>
-                </div>
-                <button
-                  onClick={() => handleFeatureToggle('analytics', !formData.features.analytics)}
-                  className={`w-12 h-6 rounded-full transition-colors ${
-                    formData.features.analytics ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
-                >
-                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
-                    formData.features.analytics ? 'transform translate-x-6' : 'transform translate-x-1'
-                  }`} />
+                  {saving ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
-
-      {/* Sticky Save Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 md:hidden">
-        <button
-          onClick={handleSave}
-          disabled={!hasChanges || isSaving}
-          className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-        >
-          {isSaving ? 'Saving...' : 'Save Changes'}
-        </button>
-      </div>
-
-      {/* Desktop Save Button */}
-      <div className="hidden md:block max-w-4xl mx-auto px-6 py-8">
-        <div className="flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={!hasChanges || isSaving}
-            className="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white px-8 py-3 rounded-lg font-medium transition-colors"
-          >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </ProtectedRoute>
   );
 } 

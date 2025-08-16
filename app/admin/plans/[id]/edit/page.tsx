@@ -1,85 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminNavigation from '../../../../../components/AdminNavigation';
 import ProtectedRoute from '../../../../../components/ProtectedRoute';
-
-// Mock plan data
-const getPlanData = (id: string) => {
-  const plans = {
-    '1': {
-      id: '1',
-      name: 'Free',
-      description: 'Perfect for getting started',
-      price: 0,
-      billingCycle: 'monthly' as const,
-      status: 'active' as const,
-      features: [
-        '1 AI chatbot',
-        '100 messages/day',
-        'Basic AI models',
-        'Email support'
-      ],
-      limits: {
-        bots: 1,
-        messagesPerDay: 100,
-        storage: '100MB',
-        teamMembers: 1
-      },
-      isPopular: false,
-      isUnlimited: false
-    },
-    '2': {
-      id: '2',
-      name: 'Pro',
-      description: 'For growing businesses',
-      price: 29,
-      billingCycle: 'monthly' as const,
-      status: 'active' as const,
-      features: [
-        '5 AI chatbots',
-        '1,000 messages/day',
-        'Advanced AI models',
-        'Priority support',
-        'Custom branding'
-      ],
-      limits: {
-        bots: 5,
-        messagesPerDay: 1000,
-        storage: '1GB',
-        teamMembers: 3
-      },
-      isPopular: true,
-      isUnlimited: false
-    },
-    '3': {
-      id: '3',
-      name: 'Business',
-      description: 'For enterprise needs',
-      price: 99,
-      billingCycle: 'monthly' as const,
-      status: 'active' as const,
-      features: [
-        'Unlimited chatbots',
-        'Unlimited messages',
-        'All AI models',
-        '24/7 phone support',
-        'Custom integrations',
-        'Advanced analytics'
-      ],
-      limits: {
-        bots: -1,
-        messagesPerDay: -1,
-        storage: '10GB',
-        teamMembers: 10
-      },
-      isPopular: false,
-      isUnlimited: true
-    }
-  };
-  
-  return plans[id as keyof typeof plans] || null;
-};
+import { getPlanById, updatePlan, deletePlan, PlanData } from '../../../../../lib/firebase';
 
 interface PlanFormData {
   name: string;
@@ -99,53 +24,61 @@ interface PlanFormData {
 }
 
 interface EditPlanPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function EditPlanPage({ params }: EditPlanPageProps) {
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [plan, setPlan] = useState(getPlanData(params.id));
+  const [planId, setPlanId] = useState<string>('');
+  const [plan, setPlan] = useState<PlanData | null>(null);
   const [formData, setFormData] = useState<PlanFormData | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [hasChanges, setHasChanges] = useState(false);
   const [newFeature, setNewFeature] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
-    if (plan) {
-      setFormData({
-        name: plan.name,
-        description: plan.description,
-        price: plan.price,
-        billingCycle: plan.billingCycle,
-        status: plan.status,
-        features: [...plan.features],
-        limits: { ...plan.limits },
-        isPopular: plan.isPopular,
-        isUnlimited: plan.isUnlimited
-      });
-    }
-  }, [plan]);
+    const getParams = async () => {
+      const resolvedParams = await params;
+      setPlanId(resolvedParams.id);
+      await fetchPlan(resolvedParams.id);
+    };
+    getParams();
+  }, [params]);
 
-  if (!plan || !formData) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <AdminNavigation />
-        <div className="max-w-4xl mx-auto px-6 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-semibold text-gray-900 mb-4">Plan Not Found</h1>
-            <p className="text-gray-600 mb-6">The plan you're looking for doesn't exist.</p>
-            <a 
-              href="/admin/plans" 
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-            >
-              Back to Plans
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const fetchPlan = async (id: string) => {
+    try {
+      setIsLoading(true);
+      setError('');
+      const fetchedPlan = await getPlanById(id);
+      
+      if (!fetchedPlan) {
+        setError('Plan not found');
+        return;
+      }
+      
+      setPlan(fetchedPlan);
+      setFormData({
+        name: fetchedPlan.name,
+        description: fetchedPlan.description || '',
+        price: fetchedPlan.price,
+        billingCycle: fetchedPlan.billingCycle,
+        status: fetchedPlan.status,
+        features: [...fetchedPlan.features],
+        limits: { ...fetchedPlan.limits },
+        isPopular: fetchedPlan.isPopular || false,
+        isUnlimited: fetchedPlan.isUnlimited || false
+      });
+    } catch (err) {
+      console.error('Error fetching plan:', err);
+      setError('Failed to load plan data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev!, [field]: value }));
@@ -180,25 +113,100 @@ export default function EditPlanPage({ params }: EditPlanPageProps) {
   };
 
   const handleSavePlan = async () => {
+    if (!formData || !planId) return;
+
+    try {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsSaving(false);
+      setError('');
+
+      const updateData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        price: formData.price,
+        billingCycle: formData.billingCycle,
+        status: formData.status,
+        features: formData.features,
+        limits: {
+          bots: formData.isUnlimited ? -1 : formData.limits.bots,
+          messagesPerDay: formData.isUnlimited ? -1 : formData.limits.messagesPerDay,
+          storage: formData.limits.storage,
+          teamMembers: formData.limits.teamMembers
+        },
+        isPopular: formData.isPopular,
+        isUnlimited: formData.isUnlimited
+      };
+
+      await updatePlan(planId, updateData);
     setHasChanges(false);
-    // Show success message
     alert('Plan updated successfully!');
+    } catch (err: any) {
+      console.error('Error updating plan:', err);
+      setError(err.message || 'Failed to update plan');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDeletePlan = async () => {
+    if (!planId) return;
+
     if (confirm('Are you sure you want to delete this plan? This action cannot be undone.')) {
+      try {
       setIsSaving(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+        await deletePlan(planId);
+        router.push('/admin/plans');
+      } catch (err: any) {
+        console.error('Error deleting plan:', err);
+        setError(err.message || 'Failed to delete plan');
       setIsSaving(false);
-      // Redirect to plans page
-      window.location.href = '/admin/plans';
+      }
     }
   };
+
+  if (isLoading) {
+    return (
+      <ProtectedRoute adminOnly={true}>
+        <div className="min-h-screen bg-gray-50">
+          <AdminNavigation currentPage="plans" />
+          <div className="max-w-4xl mx-auto px-6 py-8">
+            <div className="flex items-center justify-center h-64">
+              <div className="flex items-center space-x-2">
+                <svg className="animate-spin h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-gray-600">Loading plan...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  if (error || !plan || !formData) {
+    return (
+      <ProtectedRoute adminOnly={true}>
+        <div className="min-h-screen bg-gray-50">
+          <AdminNavigation currentPage="plans" />
+          <div className="max-w-4xl mx-auto px-6 py-8">
+            <div className="text-center">
+              <h1 className="text-2xl font-semibold text-gray-900 mb-4">Plan Not Found</h1>
+              <p className="text-gray-600 mb-6">
+                {error || "The plan you're looking for doesn't exist."}
+              </p>
+              <a 
+                href="/admin/plans" 
+                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                Back to Plans
+              </a>
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute adminOnly={true}>
@@ -237,6 +245,22 @@ export default function EditPlanPage({ params }: EditPlanPageProps) {
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          {error && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">Error</h3>
+                  <div className="mt-2 text-sm text-red-700">{error}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Basic Information */}
             <div className="space-y-6">

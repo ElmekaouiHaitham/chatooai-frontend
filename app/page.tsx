@@ -1,6 +1,55 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getAllPlans, PlanData } from '../lib/firebase';
 
 export default function Home() {
+  const [plans, setPlans] = useState<PlanData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
+  const fetchPlans = async () => {
+    try {
+      setLoading(true);
+      const fetchedPlans = await getAllPlans();
+      // Filter only active plans and sort by price
+      const activePlans = fetchedPlans
+        .filter(plan => plan.status === 'active')
+        .sort((a, b) => a.price - b.price);
+      setPlans(activePlans);
+    } catch (err) {
+      console.error('Error fetching plans:', err);
+      setError('Failed to load pricing plans');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getPlanColor = (name: string) => {
+    switch (name) {
+      case 'Business':
+        return 'border-purple-500';
+      case 'Pro':
+        return 'border-green-500';
+      case 'Free':
+        return 'border-gray-200';
+      default:
+        return 'border-gray-200';
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    return price === 0 ? 'Free' : `$${price}`;
+  };
+
+  const formatLimit = (limit: number) => {
+    return limit === -1 ? 'Unlimited' : limit.toString();
+  };
+
   return (
     <div className="min-h-screen">
       {/* Navbar */}
@@ -127,108 +176,90 @@ export default function Home() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Free Plan */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg flex flex-col items-start border border-gray-200 hover:border-green-500 transition">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-2">Free</h3>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">$0</span>
-                <span className="text-gray-600">/month</span>
+          {loading ? (
+            <div className="flex justify-center">
+              <div className="flex items-center space-x-2">
+                <svg className="animate-spin h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-gray-600">Loading plans...</span>
               </div>
-              <ul className="space-y-3 mb-8 flex-grow">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">1 AI chatbot</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">100 messages/day</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">Basic AI models</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">Email support</span>
-                </li>
-              </ul>
-              <button className="w-full bg-gray-100 text-gray-900 hover:bg-gray-200 px-6 py-3 rounded-lg font-medium transition-colors">
-                Get Started Free
+            </div>
+          ) : error ? (
+            <div className="text-center">
+              <p className="text-red-600 mb-4">{error}</p>
+              <button 
+                onClick={fetchPlans}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Retry
               </button>
             </div>
-            
-            {/* Pro Plan */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg flex flex-col items-start border-2 border-green-500 relative transform scale-105">
+          ) : plans.length === 0 ? (
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">No pricing plans available at the moment.</p>
+              <a 
+                href="/signup"
+                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                Get Started
+              </a>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {plans.map((plan, index) => (
+                <div 
+                  key={plan.id} 
+                  className={`bg-white p-8 rounded-2xl shadow-lg flex flex-col items-start border-2 ${getPlanColor(plan.name)} relative hover:shadow-xl transition-all ${
+                    plan.isPopular ? 'transform scale-105' : ''
+                  }`}
+                >
+                  {plan.isPopular && (
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                 <span className="bg-green-500 text-white px-4 py-1 rounded-full text-sm font-medium">Most Popular</span>
               </div>
-              <h3 className="text-2xl font-semibold text-gray-900 mb-2">Pro</h3>
+                  )}
+                  <h3 className="text-2xl font-semibold text-gray-900 mb-2">{plan.name}</h3>
               <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">$29</span>
-                <span className="text-gray-600">/month</span>
+                    <span className="text-4xl font-bold text-gray-900">{formatPrice(plan.price)}</span>
+                    <span className="text-gray-600">/{plan.billingCycle}</span>
               </div>
               <ul className="space-y-3 mb-8 flex-grow">
                 <li className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">5 AI chatbots</span>
+                      <span className="text-gray-600">{formatLimit(plan.limits.bots)} AI chatbot{plan.limits.bots !== 1 ? 's' : ''}</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">1,000 messages/day</span>
+                      <span className="text-gray-600">{formatLimit(plan.limits.messagesPerDay)} messages/day</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">Advanced AI models</span>
+                      <span className="text-gray-600">{plan.limits.storage} storage</span>
                 </li>
                 <li className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">Priority support</span>
+                      <span className="text-gray-600">{plan.limits.teamMembers} team member{plan.limits.teamMembers !== 1 ? 's' : ''}</span>
                 </li>
-                <li className="flex items-center">
+                    {plan.features.map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-center">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">Custom branding</span>
+                        <span className="text-gray-600">{feature}</span>
                 </li>
+                    ))}
               </ul>
-              <button className="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                Choose Pro
+                  <button className={`w-full px-6 py-3 rounded-lg font-medium transition-colors ${
+                    plan.isPopular 
+                      ? 'bg-green-500 hover:bg-green-600 text-white' 
+                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                  }`}>
+                    {plan.price === 0 ? 'Get Started Free' : `Choose ${plan.name}`}
               </button>
             </div>
-            
-            {/* Business Plan */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg flex flex-col items-start border border-gray-200 hover:border-green-500 transition">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-2">Business</h3>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">$99</span>
-                <span className="text-gray-600">/month</span>
-              </div>
-              <ul className="space-y-3 mb-8 flex-grow">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">Unlimited chatbots</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">Unlimited messages</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">All AI models</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">24/7 phone support</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span className="text-gray-600">Custom integrations</span>
-                </li>
-              </ul>
-              <button className="w-full bg-gray-100 text-gray-900 hover:bg-gray-200 px-6 py-3 rounded-lg font-medium transition-colors">
-                Choose Business
-              </button>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </section>
 
