@@ -15,22 +15,9 @@ export default function CreateBotPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    avatar: "",
     aiModel: "gpt-4",
     personality: "friendly",
     autoReply: true,
-    workingHours: {
-      enabled: false,
-      start: "09:00",
-      end: "17:00",
-      timezone: "UTC",
-    },
-    features: {
-      fileSharing: false,
-      voiceMessages: false,
-      quickReplies: false,
-      analytics: true,
-    },
   });
 
   const handleInputChange = (
@@ -42,26 +29,6 @@ export default function CreateBotPage() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }));
-  };
-
-  const handleWorkingHoursChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      workingHours: {
-        ...prev.workingHours,
-        [field]: value,
-      },
-    }));
-  };
-
-  const handleFeatureToggle = (feature: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      features: {
-        ...prev.features,
-        [feature]: !prev.features[feature as keyof typeof prev.features],
-      },
     }));
   };
 
@@ -84,12 +51,9 @@ export default function CreateBotPage() {
         uid: user.uid,
         name: formData.name,
         description: formData.description,
-        avatar: formData.avatar || "/bot-avatar.png",
         aiModel: formData.aiModel,
         personality: formData.personality,
         autoReply: formData.autoReply,
-        workingHours: formData.workingHours,
-        features: formData.features,
         whatsapp: {
           status: "disconnected",
         },
@@ -105,10 +69,25 @@ export default function CreateBotPage() {
         await fetch("http://localhost:5000/bot", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: botId, name: formData.name }),
+          body: JSON.stringify({
+            id: botId,
+            name: formData.name,
+            description: formData.description,
+            aiModel: formData.aiModel,
+            personality: formData.personality,
+            autoReply: formData.autoReply,
+            whatsapp: {
+              status: "disconnected",
+            },
+            stats: {
+              messageCount: 0,
+              totalUsers: 0,
+            },
+          }),
         });
         alert("Bot name set!");
       };
+      console.log("Creating bot in backend...");
       await createBotB();
       // Redirect to the new bot's detail page
       router.push(`/bot/${botId}`);
@@ -158,20 +137,6 @@ export default function CreateBotPage() {
           rows={3}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Describe what your bot does"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Avatar URL
-        </label>
-        <input
-          type="url"
-          name="avatar"
-          value={formData.avatar}
-          onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="https://example.com/avatar.png"
         />
       </div>
     </div>
@@ -232,94 +197,12 @@ export default function CreateBotPage() {
     </div>
   );
 
-  const renderStep3 = () => (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center mb-4">
-          <input
-            type="checkbox"
-            id="workingHoursEnabled"
-            checked={formData.workingHours.enabled}
-            onChange={(e) =>
-              handleWorkingHoursChange("enabled", e.target.checked)
-            }
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-          <label
-            htmlFor="workingHoursEnabled"
-            className="ml-2 block text-sm text-gray-900"
-          >
-            Set working hours
-          </label>
-        </div>
-
-        {formData.workingHours.enabled && (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Start Time
-              </label>
-              <input
-                type="time"
-                value={formData.workingHours.start}
-                onChange={(e) =>
-                  handleWorkingHoursChange("start", e.target.value)
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                End Time
-              </label>
-              <input
-                type="time"
-                value={formData.workingHours.end}
-                onChange={(e) =>
-                  handleWorkingHoursChange("end", e.target.value)
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Features
-        </label>
-        <div className="space-y-3">
-          {Object.entries(formData.features).map(([key, value]) => (
-            <div key={key} className="flex items-center">
-              <input
-                type="checkbox"
-                id={key}
-                checked={value}
-                onChange={() => handleFeatureToggle(key)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label
-                htmlFor={key}
-                className="ml-2 block text-sm text-gray-900 capitalize"
-              >
-                {key.replace(/([A-Z])/g, " $1").trim()}
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return renderStep1();
       case 2:
         return renderStep2();
-      case 3:
-        return renderStep3();
       default:
         return null;
     }
@@ -327,7 +210,7 @@ export default function CreateBotPage() {
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-8">
-      {[1, 2, 3].map((step) => (
+      {[1, 2].map((step) => (
         <div key={step} className="flex items-center">
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -338,7 +221,7 @@ export default function CreateBotPage() {
           >
             {step}
           </div>
-          {step < 3 && (
+          {step < 2 && (
             <div
               className={`w-16 h-1 mx-2 ${
                 step < currentStep ? "bg-blue-600" : "bg-gray-200"
@@ -388,7 +271,7 @@ export default function CreateBotPage() {
               Previous
             </button>
 
-            {currentStep < 3 ? (
+            {currentStep < 2 ? (
               <button
                 onClick={nextStep}
                 className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700"

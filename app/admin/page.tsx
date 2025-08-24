@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import AdminNavigation from '../../components/AdminNavigation';
 import ProtectedRoute from '../../components/ProtectedRoute';
-import { getAllUsers, UserData } from '../../lib/firebase';
+import { getAllUsers, UserData, getUserById } from '../../lib/firebase';
 
 // Mock data for admin dashboard
 const kpiData = {
@@ -50,53 +50,49 @@ const userGrowthData = [
   { date: '2024-11-30', users: 1360 }
 ];
 
-const recentBots = [
-  {
-    id: '1',
-    name: 'Customer Support Bot',
-    owner: 'John Smith',
-    status: 'connected',
-    messages: 156,
-    lastActive: '2 hours ago'
-  },
-  {
-    id: '2',
-    name: 'Sales Assistant',
-    owner: 'Sarah Johnson',
-    status: 'connected',
-    messages: 89,
-    lastActive: '1 hour ago'
-  },
-  {
-    id: '3',
-    name: 'Appointment Scheduler',
-    owner: 'Mike Chen',
-    status: 'disconnected',
-    messages: 234,
-    lastActive: '1 day ago'
-  },
-  {
-    id: '4',
-    name: 'Order Tracker',
-    owner: 'Emily Davis',
-    status: 'connected',
-    messages: 67,
-    lastActive: '30 minutes ago'
-  },
-  {
-    id: '5',
-    name: 'FAQ Bot',
-    owner: 'David Wilson',
-    status: 'connected',
-    messages: 445,
-    lastActive: '15 minutes ago'
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+
+interface RecentBot {
+  id: string;
+  name: string;
+  owner: string;
+  status: string;
+  messages: number;
+  lastActive: any;
+}
+
+const fetchRecentBots = async (): Promise<RecentBot[]> => {
+  const botsRef = collection(db, 'bots');
+  const q = query(botsRef, orderBy('createdAt', 'desc'), limit(5));
+  const querySnapshot = await getDocs(q);
+  const bots: RecentBot[] = [];
+  for (const docSnap of querySnapshot.docs) {
+    const data = docSnap.data();
+    let ownerName = '';
+    try {
+      const user = await getUserById(data.uid);
+      ownerName = user?.displayName || user?.email || 'Unknown';
+    } catch {
+      ownerName = 'Unknown';
+    }
+    bots.push({
+      id: docSnap.id,
+      name: data.name || 'Unnamed Bot',
+      owner: ownerName,
+      status: data.whatsapp?.status || 'disconnected',
+      messages: data.stats?.messageCount || 0,
+      lastActive: data.stats?.lastActive || data.updatedAt || null,
+    });
   }
-];
+  return bots;
+};
 
 export default function AdminDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('30d');
   const [recentUsers, setRecentUsers] = useState<UserData[]>([]);
   const [allUsers, setAllUsers] = useState<UserData[]>([]);
+  const [recentBots, setRecentBots] = useState<RecentBot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -109,7 +105,6 @@ export default function AdminDashboard() {
       setLoading(true);
       const users = await getAllUsers();
       setAllUsers(users);
-      
       // Sort by joined date (most recent first) and take the first 5
       const sortedUsers = users
         .sort((a, b) => {
@@ -119,6 +114,10 @@ export default function AdminDashboard() {
         })
         .slice(0, 5);
       setRecentUsers(sortedUsers);
+
+      // Fetch recent bots
+      const bots = await fetchRecentBots();
+      setRecentBots(bots);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError('Failed to fetch dashboard data');
@@ -425,34 +424,52 @@ export default function AdminDashboard() {
               </a>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Bot</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Owner</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Status</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Messages</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentBots.map((bot) => (
-                    <tr key={bot.id} className="border-b border-gray-100">
-                      <td className="py-3 px-4">
-                        <p className="font-medium text-gray-900">{bot.name}</p>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-900">{bot.owner}</td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          bot.status === 'connected' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {bot.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-900">{bot.messages}</td>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex items-center space-x-2">
+                    <svg className="animate-spin h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-gray-600">Loading bots...</span>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="text-center py-8">
+                  <p className="text-red-600">{error}</p>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Bot</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Owner</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Status</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Messages</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Last Active</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {recentBots.map((bot) => (
+                      <tr key={bot.id} className="border-b border-gray-100">
+                        <td className="py-3 px-4">
+                          <p className="font-medium text-gray-900">{bot.name}</p>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-900">{bot.owner}</td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            bot.status === 'connected' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {bot.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-900">{bot.messages}</td>
+                        <td className="py-3 px-4 text-sm text-gray-500">{formatTimeAgo(bot.lastActive)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>
