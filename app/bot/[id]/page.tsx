@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Navigation from '../../../components/Navigation';
 import ProtectedRoute from '../../../components/ProtectedRoute';
 import { useAuth } from '../../../contexts/AuthContext';
-import { getBotById, BotData } from '../../../lib/firebase';
+import { getBotById, BotData, getCurrentUserToken } from '../../../lib/firebase';
 
 export default function BotDetailPage() {
   const { user } = useAuth();
@@ -35,10 +35,15 @@ export default function BotDetailPage() {
 
     ws.onclose = () => console.log("WebSocket closed");
 
-    // Fetch fallback QR and bot name
-    fetch(`http://localhost:5000/qr/${botId}`)
-      .then(res => res.json())
-      .then(data => setQr(data.qr));
+    // Fetch fallback QR and bot name with auth
+    (async () => {
+      const token = await getCurrentUserToken();
+      fetch(`http://localhost:5000/qr/${botId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+        .then(res => res.json())
+        .then(data => setQr(data.qr));
+    })();
 
 
     return () => ws.close();

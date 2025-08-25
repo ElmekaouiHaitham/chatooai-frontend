@@ -10,6 +10,7 @@ import {
   updateBot,
   deleteBot,
   BotData,
+  getCurrentUserToken,
 } from "../../../../lib/firebase";
 
 export default function BotSettingsPage() {
@@ -83,9 +84,13 @@ export default function BotSettingsPage() {
       await updateBot(bot.id, updateData);
 
       const updateBotB = async () => {
+        const token = await getCurrentUserToken();
         await fetch(`http://localhost:5000/bot/${bot.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
             name: formData.name!,
             description: formData.description!,

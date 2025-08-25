@@ -53,6 +53,13 @@ export const storage = getStorage(app);
 // Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
 
+// Get the current user's Firebase Auth ID token (for backend API requests)
+export const getCurrentUserToken = async (): Promise<string | null> => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return null;
+  return await currentUser.getIdToken();
+};
+
 // Authentication functions
 export const signInWithGoogle = async (planId?: string) => {
   try {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/Navigation";
 import { useAuth } from "../../../contexts/AuthContext";
-import { createBot, BotData } from "../../../lib/firebase";
+import { createBot, BotData, getCurrentUserToken } from "../../../lib/firebase";
 
 export default function CreateBotPage() {
   const { user } = useAuth();
@@ -66,9 +66,13 @@ export default function CreateBotPage() {
       // Initialize WhatsApp service for this bot
       // await whatsappService.createBot(botId);
       const createBotB = async () => {
+        const token = await getCurrentUserToken();
         await fetch("http://localhost:5000/bot", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
             id: botId,
             name: formData.name,
