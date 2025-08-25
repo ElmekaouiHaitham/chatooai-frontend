@@ -4,7 +4,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Navigation from '../../../components/Navigation';
 import ProtectedRoute from '../../../components/ProtectedRoute';
 import { useAuth } from '../../../contexts/AuthContext';
-import { getBotById, BotData, getCurrentUserToken } from '../../../lib/firebase';
+import {BotData, getCurrentUserToken, db } from '../../../lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 export default function BotDetailPage() {
   const { user } = useAuth();
@@ -50,26 +51,26 @@ export default function BotDetailPage() {
   }, [bot]);
 
   useEffect(() => {
-    const fetchBot = async () => {
-      try {
-        if (typeof params.id === 'string') {
-          const botData = await getBotById(params.id);
-          if (botData) {
-            setBot(botData);
-            setWhatsappStatus(botData.whatsapp.status);
-          } else {
-            setError('Bot not found');
-          }
-        }
-      } catch (err) {
-        setError('Failed to load bot');
-        console.error(err);
-      } finally {
-        setLoading(false);
+    if (typeof params.id !== 'string') return;
+    setLoading(true);
+    // Listen to bot document for real-time updates
+    const botRef = doc(db, 'bots', params.id);
+    const unsubscribe = onSnapshot(botRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as BotData;
+        setBot({ ...data, id: docSnap.id });
+        setWhatsappStatus(data.whatsapp.status);
+        setError('');
+      } else {
+        setBot(null);
+        setError('Bot not found');
       }
-    };
-
-    fetchBot();
+      setLoading(false);
+    }, (err) => {
+      setError('Failed to load bot');
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, [params.id]);
 
 
