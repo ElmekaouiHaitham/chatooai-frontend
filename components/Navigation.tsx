@@ -19,14 +19,12 @@ export default function Navigation({ currentPage = 'dashboard' }: NavigationProp
     { name: 'Dashboard', href: '/dashboard', icon: '📊' },
     { name: 'My Bots', href: '/dashboard', icon: '🤖' },
     { name: 'Analytics', href: '/analytics', icon: '📈' },
-    { name: 'Templates', href: '/templates', icon: '📝' },
-    { name: 'Integrations', href: '/integrations', icon: '🔗' },
+
     { name: 'Billing', href: '/billing', icon: '💳' },
   ];
 
   const userMenuItems = [
     { name: 'Account Settings', href: '/account', icon: '⚙️' },
-    { name: 'API Keys', href: '/api-keys', icon: '🔑' },
     { name: 'Help & Support', href: '/support', icon: '❓' },
     { name: 'Logout', href: '#', icon: '🚪', action: 'logout' },
   ];
