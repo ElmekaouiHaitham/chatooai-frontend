@@ -138,9 +138,6 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
 };
 
-
-
-
 // User management functions
 export interface UserData {
   uid: string;
@@ -164,7 +161,6 @@ export interface UserData {
     messages: number;
     startDate: Timestamp;
     endDate: Timestamp;
-
   }>;
 }
 
@@ -211,6 +207,46 @@ export interface BotData {
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+// Fetch all bots in the system
+export const getAllBots = async (): Promise<BotData[]> => {
+  try {
+    const botsRef = collection(db, "bots");
+    const q = query(botsRef, orderBy("createdAt", "asc"));
+    const querySnapshot = await getDocs(q);
+    const bots: BotData[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      bots.push({
+        id: doc.id,
+        uid: data.uid || "",
+        name: data.name || "Unnamed Bot",
+        description: data.description || "",
+        aiModel: data.aiModel || "gpt-3.5-turbo",
+        personality: data.personality || "Friendly and helpful",
+        autoReply: data.autoReply || false,
+        whatsapp: data.whatsapp || {
+          phoneNumber: undefined,
+          status: "disconnected",
+          qrCode: undefined,
+          lastConnected: undefined,
+          authFiles: [],
+        },
+        stats: data.stats || {
+          messageCount: 0,
+          lastActive: undefined,
+          totalUsers: 0,
+        },
+        createdAt: data.createdAt || Timestamp.now(),
+        updatedAt: data.updatedAt || Timestamp.now(),
+      });
+    });
+    return bots;
+  } catch (error) {
+    console.error("Error fetching all bots:", error);
+    throw error;
+  }
+};
 
 export const getAllUsers = async (): Promise<UserData[]> => {
   try {
@@ -487,8 +523,10 @@ const createUserDocument = async (
       // Calculate start and end of the current month for monthlyUsage
       const now = new Date();
       const startDate = Timestamp.now();
-  // End of period: set to 30 days after startDate
-  const endDate = Timestamp.fromDate(new Date(startDate.toDate().getTime() + 30 * 24 * 60 * 60 * 1000));
+      // End of period: set to 30 days after startDate
+      const endDate = Timestamp.fromDate(
+        new Date(startDate.toDate().getTime() + 30 * 24 * 60 * 60 * 1000)
+      );
       await setDoc(userRef, {
         email: user.email,
         displayName: displayName || user.displayName || "",
@@ -503,14 +541,16 @@ const createUserDocument = async (
         revenue: 0,
         isAdmin: false,
         totalMessages: 0,
-        monthlyUsage: [{
-          month: now.getMonth() + 1,
-          year: now.getFullYear(),
-          bots: 0,
-          messages: 0,
-          startDate,
-          endDate,
-        }],
+        monthlyUsage: [
+          {
+            month: now.getMonth() + 1,
+            year: now.getFullYear(),
+            bots: 0,
+            messages: 0,
+            startDate,
+            endDate,
+          },
+        ],
       });
     } else {
       // Update last active time
@@ -633,7 +673,8 @@ export const getPlansByStatus = async (status: string): Promise<PlanData[]> => {
         features: data.features,
         limits: {
           botsPerMonth: data.limits?.botsPerMonth ?? data.limits?.bots ?? 0,
-          messagesPerMonth: data.limits?.messagesPerMonth ?? data.limits?.messagesPerDay ?? 0,
+          messagesPerMonth:
+            data.limits?.messagesPerMonth ?? data.limits?.messagesPerDay ?? 0,
         },
         isPopular: data.isPopular,
         isUnlimited: data.isUnlimited,
@@ -695,7 +736,6 @@ export const createBot = async (
 
     await setDoc(botRef, newBot);
 
-
     // Update user's bot count, add bot ID, and increment current month's bots in monthlyUsage
     const userRef = doc(db, "users", botData.uid);
     const userDoc = await getDoc(userRef);
@@ -713,7 +753,7 @@ export const createBot = async (
         if (entry.month === month && entry.year === year) {
           found = true;
           // Prefer botsPerMonth if present, else fallback to bots
-          if (typeof entry.botsPerMonth === 'number') {
+          if (typeof entry.botsPerMonth === "number") {
             return { ...entry, botsPerMonth: entry.botsPerMonth + 1 };
           } else {
             return { ...entry, bots: (entry.bots || 0) + 1 };
