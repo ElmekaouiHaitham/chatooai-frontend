@@ -138,6 +138,9 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
 };
 
+
+
+
 // User management functions
 export interface UserData {
   uid: string;
@@ -153,6 +156,16 @@ export interface UserData {
   lastActive?: Timestamp;
   revenue?: number;
   isAdmin?: boolean;
+  totalMessages?: number;
+  monthlyUsage?: Array<{
+    month: number; // 1-12
+    year: number;
+    bots: number;
+    messages: number;
+    startDate: Timestamp;
+    endDate: Timestamp;
+
+  }>;
 }
 
 export interface PlanData {
@@ -164,10 +177,8 @@ export interface PlanData {
   status: "active" | "inactive" | "draft";
   features: string[];
   limits: {
-    bots: number;
-    messagesPerDay: number;
-    storage: string;
-    teamMembers: number;
+    botsPerMonth: number;
+    messagesPerMonth: number;
   };
   isPopular?: boolean;
   isUnlimited?: boolean;
@@ -223,6 +234,8 @@ export const getAllUsers = async (): Promise<UserData[]> => {
         lastActive: data.lastActive,
         revenue: data.revenue || 0,
         isAdmin: data.isAdmin || false,
+        totalMessages: data.totalMessages || 0,
+        monthlyUsage: data.monthlyUsage || [],
       });
     });
 
@@ -246,6 +259,7 @@ export const getUserById = async (uid: string): Promise<UserData | null> => {
         displayName: data.displayName || "",
         photoURL: data.photoURL || "",
         plan: data.plan || "Free",
+        planId: data.planId || null,
         status: data.status || "active",
         bots: data.bots || 0,
         botIds: data.botIds || [], // Include bot IDs array
@@ -253,6 +267,8 @@ export const getUserById = async (uid: string): Promise<UserData | null> => {
         lastActive: data.lastActive,
         revenue: data.revenue || 0,
         isAdmin: data.isAdmin || false,
+        totalMessages: data.totalMessages || 0,
+        monthlyUsage: data.monthlyUsage || [],
       };
     }
 
@@ -364,6 +380,8 @@ export const getCurrentUserData = async (): Promise<UserData | null> => {
       lastActive: data.lastActive,
       revenue: data.revenue || 0,
       isAdmin: data.isAdmin || false,
+      totalMessages: data.totalMessages || 0,
+      monthlyUsage: data.monthlyUsage || [],
     };
   } catch (error) {
     console.error("Error fetching current user data:", error);
@@ -417,6 +435,8 @@ export const getUsersByStatus = async (status: string): Promise<UserData[]> => {
         lastActive: data.lastActive,
         revenue: data.revenue || 0,
         isAdmin: data.isAdmin || false,
+        totalMessages: data.totalMessages || 0,
+        monthlyUsage: data.monthlyUsage || [],
       });
     });
 
@@ -464,6 +484,12 @@ const createUserDocument = async (
       }
 
       // Create new user document
+      // Calculate start and end of the current month for monthlyUsage
+      const now = new Date();
+      const startDate = Timestamp.now();
+      // End of month: set to last millisecond of the month
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const endDate = Timestamp.fromDate(endOfMonth);
       await setDoc(userRef, {
         email: user.email,
         displayName: displayName || user.displayName || "",
@@ -473,10 +499,19 @@ const createUserDocument = async (
         status: "active",
         bots: 0,
         botIds: [], // Initialize empty array for bot IDs
-        joined: Timestamp.now(),
-        lastActive: Timestamp.now(),
+        joined: startDate,
+        lastActive: startDate,
         revenue: 0,
         isAdmin: false,
+        totalMessages: 0,
+        monthlyUsage: [{
+          month: now.getMonth() + 1,
+          year: now.getFullYear(),
+          bots: 0,
+          messages: 0,
+          startDate,
+          endDate,
+        }],
       });
     } else {
       // Update last active time
@@ -597,7 +632,10 @@ export const getPlansByStatus = async (status: string): Promise<PlanData[]> => {
         billingCycle: data.billingCycle,
         status: data.status,
         features: data.features,
-        limits: data.limits,
+        limits: {
+          botsPerMonth: data.limits?.botsPerMonth ?? data.limits?.bots ?? 0,
+          messagesPerMonth: data.limits?.messagesPerMonth ?? data.limits?.messagesPerDay ?? 0,
+        },
         isPopular: data.isPopular,
         isUnlimited: data.isUnlimited,
         users: data.users,

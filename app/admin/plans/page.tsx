@@ -282,15 +282,15 @@ export default function AdminPlansPage() {
                     <span className="font-medium">${plan.revenue || 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Bots:</span>
+                    <span className="text-gray-600">Bots/month:</span>
                     <span className="font-medium">
-                      {plan.limits.bots === -1 ? 'Unlimited' : plan.limits.bots}
+                      {plan.limits.botsPerMonth === -1 ? 'Unlimited' : plan.limits.botsPerMonth}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Messages/day:</span>
+                    <span className="text-gray-600">Messages/month:</span>
                     <span className="font-medium">
-                      {plan.limits.messagesPerDay === -1 ? 'Unlimited' : plan.limits.messagesPerDay}
+                      {plan.limits.messagesPerMonth=== -1 ? 'Unlimited' : plan.limits.messagesPerMonth}
                     </span>
                   </div>
                 </div>

@@ -14,10 +14,8 @@ interface PlanFormData {
   status: 'active' | 'inactive' | 'draft';
   features: string[];
   limits: {
-    bots: number;
-    messagesPerDay: number;
-    storage: string;
-    teamMembers: number;
+    botsPerMonth: number;
+    messagesPerMonth: number;
   };
   isPopular: boolean;
   isUnlimited: boolean;
@@ -68,7 +66,10 @@ export default function EditPlanPage({ params }: EditPlanPageProps) {
         billingCycle: fetchedPlan.billingCycle,
         status: fetchedPlan.status,
         features: [...fetchedPlan.features],
-        limits: { ...fetchedPlan.limits },
+        limits: {
+          botsPerMonth: fetchedPlan.limits?.botsPerMonth ?? 0,
+          messagesPerMonth: fetchedPlan.limits?.messagesPerMonth ?? 0,
+        },
         isPopular: fetchedPlan.isPopular || false,
         isUnlimited: fetchedPlan.isUnlimited || false
       });
@@ -85,7 +86,7 @@ export default function EditPlanPage({ params }: EditPlanPageProps) {
     setHasChanges(true);
   };
 
-  const handleLimitChange = (field: string, value: any) => {
+  const handleLimitChange = (field: keyof PlanFormData['limits'], value: any) => {
     setFormData(prev => ({
       ...prev!,
       limits: { ...prev!.limits, [field]: value }
@@ -127,10 +128,8 @@ export default function EditPlanPage({ params }: EditPlanPageProps) {
         status: formData.status,
         features: formData.features,
         limits: {
-          bots: formData.isUnlimited ? -1 : formData.limits.bots,
-          messagesPerDay: formData.isUnlimited ? -1 : formData.limits.messagesPerDay,
-          storage: formData.limits.storage,
-          teamMembers: formData.limits.teamMembers
+          botsPerMonth: formData.isUnlimited ? -1 : formData.limits.botsPerMonth,
+          messagesPerMonth: formData.isUnlimited ? -1 : formData.limits.messagesPerMonth,
         },
         isPopular: formData.isPopular,
         isUnlimited: formData.isUnlimited
@@ -364,11 +363,11 @@ export default function EditPlanPage({ params }: EditPlanPageProps) {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Bots</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Bots/Month</label>
                   <input
                     type="number"
-                    value={formData.limits.bots}
-                    onChange={(e) => handleLimitChange('bots', parseInt(e.target.value) || 0)}
+                    value={formData.limits.botsPerMonth}
+                    onChange={(e) => handleLimitChange('botsPerMonth', parseInt(e.target.value) || 0)}
                     disabled={formData.isUnlimited}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100"
                     placeholder="1"
@@ -377,13 +376,12 @@ export default function EditPlanPage({ params }: EditPlanPageProps) {
                     <p className="text-xs text-gray-500 mt-1">Unlimited</p>
                   )}
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Messages/Day</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Messages/Month</label>
                   <input
                     type="number"
-                    value={formData.limits.messagesPerDay}
-                    onChange={(e) => handleLimitChange('messagesPerDay', parseInt(e.target.value) || 0)}
+                    value={formData.limits.messagesPerMonth}
+                    onChange={(e) => handleLimitChange('messagesPerMonth', parseInt(e.target.value) || 0)}
                     disabled={formData.isUnlimited}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100"
                     placeholder="100"
@@ -391,28 +389,6 @@ export default function EditPlanPage({ params }: EditPlanPageProps) {
                   {formData.isUnlimited && (
                     <p className="text-xs text-gray-500 mt-1">Unlimited</p>
                   )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Storage</label>
-                  <input
-                    type="text"
-                    value={formData.limits.storage}
-                    onChange={(e) => handleLimitChange('storage', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="100MB"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Team Members</label>
-                  <input
-                    type="number"
-                    value={formData.limits.teamMembers}
-                    onChange={(e) => handleLimitChange('teamMembers', parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="1"
-                  />
                 </div>
               </div>
 
