@@ -487,9 +487,8 @@ const createUserDocument = async (
       // Calculate start and end of the current month for monthlyUsage
       const now = new Date();
       const startDate = Timestamp.now();
-      // End of month: set to last millisecond of the month
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-      const endDate = Timestamp.fromDate(endOfMonth);
+  // End of period: set to 30 days after startDate
+  const endDate = Timestamp.fromDate(new Date(startDate.toDate().getTime() + 30 * 24 * 60 * 60 * 1000));
       await setDoc(userRef, {
         email: user.email,
         displayName: displayName || user.displayName || "",
@@ -696,15 +695,51 @@ export const createBot = async (
 
     await setDoc(botRef, newBot);
 
-    // Update user's bot count and add bot ID to botIds array
+
+    // Update user's bot count, add bot ID, and increment current month's bots in monthlyUsage
     const userRef = doc(db, "users", botData.uid);
     const userDoc = await getDoc(userRef);
     if (userDoc.exists()) {
-      const currentBots = userDoc.data().bots || 0;
-      const currentBotIds = userDoc.data().botIds || [];
+      const userData = userDoc.data();
+      const currentBots = userData.bots || 0;
+      const currentBotIds = userData.botIds || [];
+      let monthlyUsage = userData.monthlyUsage || [];
+      // Find the current month entry
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+      let found = false;
+      monthlyUsage = monthlyUsage.map((entry: any) => {
+        if (entry.month === month && entry.year === year) {
+          found = true;
+          // Prefer botsPerMonth if present, else fallback to bots
+          if (typeof entry.botsPerMonth === 'number') {
+            return { ...entry, botsPerMonth: entry.botsPerMonth + 1 };
+          } else {
+            return { ...entry, bots: (entry.bots || 0) + 1 };
+          }
+        }
+        return entry;
+      });
+      if (!found) {
+        // If no entry for this month, add one
+        const startDate = Timestamp.now();
+        const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+        const endDate = Timestamp.fromDate(endOfMonth);
+        monthlyUsage.push({
+          month,
+          year,
+          bots: 0,
+          botsPerMonth: 1,
+          messages: 0,
+          startDate,
+          endDate,
+        });
+      }
       await updateDoc(userRef, {
         bots: currentBots + 1,
-        botIds: [...currentBotIds, botRef.id], // Add new bot ID to array
+        botIds: [...currentBotIds, botRef.id],
+        monthlyUsage,
       });
     }
 
