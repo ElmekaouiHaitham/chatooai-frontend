@@ -12,6 +12,7 @@ import {
   BotData,
   getCurrentUserToken,
 } from "../../../../lib/firebase";
+import BotForm from "../../../../components/BotForm";
 
 export default function BotSettingsPage() {
   const { user } = useAuth();
@@ -205,103 +206,11 @@ export default function BotSettingsPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Basic Settings */}
-
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Basic Information
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bot Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name || ""}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description || ""}
-                    onChange={handleInputChange}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                AI Configuration
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    AI Model
-                  </label>
-                  <select
-                    name="aiModel"
-                    value={formData.aiModel || ""}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="gpt-4">GPT-4</option>
-                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                    <option value="claude-3">Claude 3</option>
-                    <option value="gemini-pro">Gemini Pro</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Personality
-                  </label>
-                  <select
-                    name="personality"
-                    value={formData.personality || ""}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="friendly">Friendly</option>
-                    <option value="professional">Professional</option>
-                    <option value="casual">Casual</option>
-                    <option value="formal">Formal</option>
-                    <option value="humorous">Humorous</option>
-                  </select>
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="autoReply"
-                    name="autoReply"
-                    checked={formData.autoReply || false}
-                    onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label
-                    htmlFor="autoReply"
-                    className="ml-2 block text-sm text-gray-900"
-                  >
-                    Enable automatic responses
-                  </label>
-                </div>
-              </div>
-            </div>
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <BotForm
+              formData={formData}
+              handleInputChange={handleInputChange}
+            />
           </div>
 
           {/* Save Button */}

@@ -1,17 +1,17 @@
-"use client";
-
+"use client"
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Navigation from "../../../components/Navigation";
 import { useAuth } from "../../../contexts/AuthContext";
-import { createBot, BotData, getCurrentUserToken } from "../../../lib/firebase";
+import { getCurrentUserToken } from "../../../lib/firebase";
+import BotForm from "../../../components/BotForm";
 
 export default function CreateBotPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string>("");
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
 
-  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -25,217 +25,64 @@ export default function CreateBotPage() {
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]:
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
   const handleCreateBot = async () => {
     if (!user) {
       setError("You must be logged in to create a bot");
+      setShowErrorDialog(true);
       return;
     }
 
     if (!formData.name.trim()) {
       setError("Bot name is required");
+      setShowErrorDialog(true);
       return;
     }
 
     try {
-      setError("");
-
-      // Create bot in Firebase
-      const botId = await createBot({
-        uid: user.uid,
-        name: formData.name,
-        description: formData.description,
-        aiModel: formData.aiModel,
-        personality: formData.personality,
-        autoReply: formData.autoReply,
-        whatsapp: {
-          status: "disconnected",
+      const token = await getCurrentUserToken();
+      const backendResponse = await fetch("http://localhost:5000/bot", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        stats: {
-          messageCount: 0,
-          totalUsers: 0,
-        },
+        body: JSON.stringify({
+          uid: user.uid,
+          name: formData.name,
+          description: formData.description,
+          aiModel: formData.aiModel,
+          personality: formData.personality,
+          autoReply: formData.autoReply,
+        }),
       });
 
-      // Initialize WhatsApp service for this bot
-      // await whatsappService.createBot(botId);
-      const createBotB = async () => {
-        const token = await getCurrentUserToken();
-        await fetch("http://localhost:5000/bot", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            id: botId,
-            name: formData.name,
-            description: formData.description,
-            aiModel: formData.aiModel,
-            personality: formData.personality,
-            autoReply: formData.autoReply,
-            whatsapp: {
-              status: "disconnected",
-            },
-            stats: {
-              messageCount: 0,
-              totalUsers: 0,
-            },
-          }),
-        });
-        alert("Bot name set!");
-      };
-      console.log("Creating bot in backend...");
-      await createBotB();
-      // Redirect to the new bot's detail page
+      if (!backendResponse.ok) {
+        const errorMessage = await backendResponse.json();
+        const displayMessage =
+          errorMessage.error || "An unknown error occurred.";
+        throw new Error(displayMessage);
+      }
+
+      const { botId } = await backendResponse.json();
       router.push(`/bot/${botId}`);
     } catch (error) {
       console.error("Error creating bot:", error);
       setError(error instanceof Error ? error.message : "Failed to create bot");
+      setShowErrorDialog(true);
     }
   };
 
-  const nextStep = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
-    }
+  const closeErrorDialog = () => {
+    setShowErrorDialog(false);
   };
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const renderStep1 = () => (
-    <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Bot Name *
-        </label>
-        <input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter bot name"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Description
-        </label>
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={handleInputChange}
-          rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Describe what your bot does"
-        />
-      </div>
-    </div>
-  );
-
-  const renderStep2 = () => (
-    <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          AI Model
-        </label>
-        <select
-          name="aiModel"
-          value={formData.aiModel}
-          onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="gpt-4">GPT-4</option>
-          <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-          <option value="claude-3">Claude 3</option>
-          <option value="gemini-pro">Gemini Pro</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Personality
-        </label>
-        <select
-          name="personality"
-          value={formData.personality}
-          onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="friendly">Friendly</option>
-          <option value="professional">Professional</option>
-          <option value="casual">Casual</option>
-          <option value="formal">Formal</option>
-          <option value="humorous">Humorous</option>
-        </select>
-      </div>
-
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="autoReply"
-          name="autoReply"
-          checked={formData.autoReply}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, autoReply: e.target.checked }))
-          }
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        />
-        <label htmlFor="autoReply" className="ml-2 block text-sm text-gray-900">
-          Enable automatic responses
-        </label>
-      </div>
-    </div>
-  );
-
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return renderStep1();
-      case 2:
-        return renderStep2();
-      default:
-        return null;
-    }
-  };
-
-  const renderStepIndicator = () => (
-    <div className="flex items-center justify-center mb-8">
-      {[1, 2].map((step) => (
-        <div key={step} className="flex items-center">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step <= currentStep
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-600"
-            }`}
-          >
-            {step}
-          </div>
-          {step < 2 && (
-            <div
-              className={`w-16 h-1 mx-2 ${
-                step < currentStep ? "bg-blue-600" : "bg-gray-200"
-              }`}
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -248,48 +95,39 @@ export default function CreateBotPage() {
               Create Your WhatsApp Bot
             </h1>
             <p className="text-gray-600">
-              Follow the steps below to set up your AI-powered WhatsApp bot
+              Fill out the form below to set up your AI-powered WhatsApp bot
             </p>
           </div>
 
-          {renderStepIndicator()}
+          <div className="mb-8">
+            <BotForm
+              formData={formData}
+              handleInputChange={handleInputChange}
+            />
+          </div>
 
-          <div className="mb-8">{renderStepContent()}</div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-red-800">{error}</p>
+          {showErrorDialog && (
+            <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+              <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+                <h2 className="text-lg font-bold text-red-600 mb-4">Error</h2>
+                <p className="text-gray-800 mb-4">{error}</p>
+                <button
+                  onClick={closeErrorDialog}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           )}
 
-          <div className="flex justify-between">
+          <div className="flex justify-end">
             <button
-              onClick={prevStep}
-              disabled={currentStep === 1}
-              className={`px-6 py-2 rounded-md font-medium ${
-                currentStep === 1
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-gray-600 text-white hover:bg-gray-700"
-              }`}
+              onClick={handleCreateBot}
+              className="px-6 py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700"
             >
-              Previous
+              Create Bot
             </button>
-
-            {currentStep < 2 ? (
-              <button
-                onClick={nextStep}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700"
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                onClick={handleCreateBot}
-                className="px-6 py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700"
-              >
-                Create Bot
-              </button>
-            )}
           </div>
         </div>
       </div>
