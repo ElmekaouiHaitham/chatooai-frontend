@@ -6,8 +6,10 @@ import ProtectedRoute from "../../components/ProtectedRoute";
 import {
   getAllUsers,
   UserData,
+  PlanData,
   getUserById,
   getAllBots,
+  getAllPlans,
 } from "../../lib/firebase";
 import { getBotGrowthData } from "../../lib/botGrowth";
 import { getUserGrowthData } from "../../lib/userGrowth";
@@ -31,18 +33,6 @@ ChartJS.register(
   Tooltip,
   Legend
 );
-
-// Mock data for admin dashboard
-const kpiData = {
-  totalUsers: 1247,
-  totalBots: 3421,
-  totalRevenue: 45678,
-  activeConversations: 89,
-  userGrowth: 23,
-  botGrowth: 18,
-  revenueGrowth: 12,
-  conversationGrowth: 8,
-};
 
 const userGrowthData = [
   { date: "2024-11-01", users: 1200 },
@@ -119,6 +109,7 @@ export default function AdminDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("30d");
   const [recentUsers, setRecentUsers] = useState<UserData[]>([]);
   const [allUsers, setAllUsers] = useState<UserData[]>([]);
+  const [allPlans, setAllPlans] = useState<PlanData[]>([]);
   const [recentBots, setRecentBots] = useState<RecentBot[]>([]);
   const [userGrowth, setUserGrowth] = useState<
     { date: string; count: number }[]
@@ -137,7 +128,11 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
       const users = await getAllUsers();
+      const plans = await getAllPlans();
+
       setAllUsers(users);
+      setAllPlans(plans);
+
       // Sort by joined date (most recent first) and take the first 5
       const sortedUsers = users
         .sort((a, b) => {
@@ -183,8 +178,8 @@ export default function AdminDashboard() {
     const activeUsers = allUsers.filter(
       (user) => user.status === "active"
     ).length;
-    const totalRevenue = allUsers.reduce(
-      (sum, user) => sum + (user.revenue || 0),
+    const totalRevenue = allPlans.reduce(
+      (sum, plan) => sum + (plan.revenue || 0),
       0
     );
 
@@ -325,7 +320,7 @@ export default function AdminDashboard() {
               color="bg-green-100"
             />
             <StatCard
-              title="Monthly Revenue"
+              title="Revenue"
               value={`$${kpiData.totalRevenue.toLocaleString()}`}
               icon="💰"
               color="bg-yellow-100"

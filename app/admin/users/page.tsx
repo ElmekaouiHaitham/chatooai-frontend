@@ -243,7 +243,7 @@ export default function AdminUsersPage() {
                       Bots
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Revenue
+                      Messages
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Joined
@@ -294,7 +294,7 @@ export default function AdminUsersPage() {
                       </td>
                       
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${user.revenue || 0}
+                        {user.totalMessages || 0}
                       </td>
                       
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

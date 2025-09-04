@@ -22,6 +22,7 @@ export default function BotSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>("");
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [formData, setFormData] = useState<Partial<BotData>>({});
 
@@ -69,50 +70,34 @@ export default function BotSettingsPage() {
 
   const handleSave = async () => {
     if (!bot) return;
-
     try {
       setSaving(true);
       setError("");
-
-      const updateData: Partial<BotData> = {
+      const token = await getCurrentUserToken();
+      const updateData = {
         name: formData.name!,
         description: formData.description!,
         aiModel: formData.aiModel!,
         personality: formData.personality!,
         autoReply: formData.autoReply!,
       };
-
-      await updateBot(bot.id, updateData);
-
-      const updateBotB = async () => {
-        const token = await getCurrentUserToken();
-        await fetch(`http://localhost:5000/bot/${bot.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            name: formData.name!,
-            description: formData.description!,
-            aiModel: formData.aiModel!,
-            personality: formData.personality!,
-            autoReply: formData.autoReply!,
-          }),
-        });
-        alert("Bot updated!");
-      };
-      console.log("Updating bot in backend...");
-      await updateBotB();
-
-      // Update local state
+      const response = await fetch(`http://localhost:5000/bot/${bot.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(updateData),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update bot");
+      }
       setBot((prev) => (prev ? { ...prev, ...updateData } : null));
-
-      // Show success message
       alert("Bot settings saved successfully!");
     } catch (err) {
       console.error("Failed to save bot:", err);
       setError("Failed to save bot settings");
+      setShowErrorDialog(true);
     } finally {
       setSaving(false);
     }
@@ -172,6 +157,23 @@ export default function BotSettingsPage() {
             </button>
           </div>
         </div>
+        {/* Error Dialog for initial load error */}
+        {showErrorDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Error</h3>
+              <p className="text-gray-600 mb-6">{error}</p>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowErrorDialog(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -200,9 +202,21 @@ export default function BotSettingsPage() {
             </div>
           </div>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-red-800">{error}</p>
+          {/* Error Dialog for save error */}
+          {showErrorDialog && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Error</h3>
+                <p className="text-gray-600 mb-6">{error}</p>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowErrorDialog(false)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

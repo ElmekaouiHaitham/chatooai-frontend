@@ -178,8 +178,8 @@ export interface PlanData {
   };
   isPopular?: boolean;
   isUnlimited?: boolean;
-  users?: number;
-  revenue?: number;
+  users: number;
+  revenue: number;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -362,6 +362,13 @@ export const updateCurrentUserPlan = async (planId: string): Promise<void> => {
       plan: planData.name,
       planId: planId,
     });
+
+    // Increment user count and revenue for the plan
+    const planRef = doc(db, "plans", planId);
+    await updateDoc(planRef, {
+      users: (planData.users || 0) + 1,
+      revenue: (planData.revenue || 0) + planData.price,
+    });
   } catch (error) {
     console.error("Error updating current user plan:", error);
     throw error;
@@ -511,7 +518,15 @@ const createUserDocument = async (
         try {
           const planDoc = await getDoc(doc(db, "plans", planId));
           if (planDoc.exists()) {
-            planName = planDoc.data().name;
+            const planData = planDoc.data();
+            planName = planData.name;
+
+            // Increment user count and revenue for the plan
+            const planRef = doc(db, "plans", planId);
+            await updateDoc(planRef, {
+              users: (planData.users || 0) + 1,
+              revenue: (planData.revenue || 0) + planData.price,
+            });
           }
         } catch (error) {
           console.error("Error fetching plan details:", error);

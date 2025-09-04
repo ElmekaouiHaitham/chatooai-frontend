@@ -11,6 +11,7 @@ export default function CreateBotPage() {
   const router = useRouter();
   const [error, setError] = useState<string>("");
   const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -46,6 +47,7 @@ export default function CreateBotPage() {
       return;
     }
 
+    setIsLoading(true);
     try {
       const token = await getCurrentUserToken();
       const backendResponse = await fetch("http://localhost:5000/bot", {
@@ -77,6 +79,8 @@ export default function CreateBotPage() {
       console.error("Error creating bot:", error);
       setError(error instanceof Error ? error.message : "Failed to create bot");
       setShowErrorDialog(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -124,9 +128,20 @@ export default function CreateBotPage() {
           <div className="flex justify-end">
             <button
               onClick={handleCreateBot}
-              className="px-6 py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700"
+              className={`px-6 py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 flex items-center justify-center ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              disabled={isLoading}
             >
-              Create Bot
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                  Creating...
+                </>
+              ) : (
+                'Create Bot'
+              )}
             </button>
           </div>
         </div>
