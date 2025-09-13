@@ -24,7 +24,7 @@ export default function BotDetailPage() {
     if (!botId) return;
 
     // Connect WebSocket
-    const ws = new WebSocket("ws://localhost:5000");
+    const ws = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:5000");
 
     ws.onopen = () => console.log(`WebSocket connected for bot ${botId}`);
 
@@ -41,7 +41,7 @@ export default function BotDetailPage() {
     // Fetch fallback QR and bot name with auth
     (async () => {
       const token = await getCurrentUserToken();
-      fetch(`http://localhost:5000/qr/${botId}`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/qr/${botId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
         .then((res) => res.json())
@@ -172,6 +172,37 @@ export default function BotDetailPage() {
                     className="px-6 py-2 bg-yellow-600 text-white rounded-md opacity-50 cursor-not-allowed"
                   >
                     Connecting...
+                  </button>
+                )}
+
+                {whatsappStatus === "connected" && (
+                  <button
+                    onClick={async () => {
+                      setLoading(true);
+                      setError("");
+                      try {
+                        const token = await getCurrentUserToken();
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/bot/${bot.id}/disconnect`, {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                          },
+                        });
+                        if (!res.ok) {
+                          const data = await res.json();
+                          throw new Error(data.error || "Failed to disconnect bot");
+                        }
+                        setWhatsappStatus("disconnected");
+                      } catch (err) {
+                        setError("Failed to disconnect bot");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                  >
+                    Disconnect
                   </button>
                 )}
               </div>

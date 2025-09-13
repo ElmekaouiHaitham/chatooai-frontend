@@ -83,7 +83,9 @@ export default function Billing() {
                       <div className="font-semibold text-gray-900">
                         {currentMonthUsage
                           ? `${currentMonthUsage.messages} / ${
-                              plan?.limits?.messagesPerMonth ?? "∞"
+                              plan?.limits?.messagesPerMonth === -1
+                                ? "∞"
+                                : plan?.limits?.messagesPerMonth ?? "∞"
                             }`
                           : "0 / ∞"}
                       </div>
@@ -91,7 +93,13 @@ export default function Billing() {
                     <div>
                       <span className="text-gray-600">Bots Active</span>
                       <div className="font-semibold text-gray-900">
-                        {userData?.bots ?? 0} / {plan?.limits?.botsPerMonth ?? "∞"}
+                        {currentMonthUsage
+                          ? `${currentMonthUsage.bots} / ${
+                              plan?.limits?.botsPerMonth === -1
+                                ? "∞"
+                                : plan?.limits?.botsPerMonth ?? "∞"
+                            }`
+                          : "0 / ∞"}
                       </div>
                     </div>
                     <div>

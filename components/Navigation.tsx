@@ -17,6 +17,7 @@ export default function Navigation({
   const { user } = useAuth();
   const router = useRouter();
 
+  // Static navigation links for both desktop and mobile views.
   const navigationItems = [
     { name: "Dashboard", href: "/dashboard", icon: "📊" },
     { name: "My Bots", href: "/dashboard", icon: "🤖" },
@@ -25,12 +26,14 @@ export default function Navigation({
     { name: "Billing", href: "/billing", icon: "💳" },
   ];
 
+  // User dropdown menu items.
   const userMenuItems = [
     { name: "Account Settings", href: "/account", icon: "⚙️" },
     { name: "Help & Support", href: "/support", icon: "❓" },
     { name: "Logout", href: "#", icon: "🚪", action: "logout" },
   ];
 
+  // Handles user menu actions (currently only logout).
   const handleUserMenuClick = async (item: any) => {
     if (item.action === "logout") {
       try {

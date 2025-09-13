@@ -5,7 +5,6 @@ import Navigation from "../../components/Navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   getCurrentUserData,
-  updateCurrentUserDisplayName,
   getAllPlans,
 } from "../../lib/firebase";
 import { UserData, PlanData } from "../../lib/firebase";
@@ -60,8 +59,6 @@ export default function AccountSettings() {
       setSaving(true);
       setError("");
       setSuccess("");
-
-      await updateCurrentUserDisplayName(displayName);
 
       // Update local state
       setUserData((prev) => (prev ? { ...prev, displayName } : null));

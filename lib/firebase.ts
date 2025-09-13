@@ -29,13 +29,13 @@ import {
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBSOYzR0SzGI_sszKDOBYPaLX5_ZLWPMeI",
-  authDomain: "chatooai.firebaseapp.com",
-  projectId: "chatooai",
-  storageBucket: "chatooai.firebasestorage.app",
-  messagingSenderId: "730182896787",
-  appId: "1:730182896787:web:253231731b29f8f9ced166",
-  measurementId: "G-54BM5SJ57L",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase
@@ -315,87 +315,6 @@ export const getUserById = async (uid: string): Promise<UserData | null> => {
   }
 };
 
-export const updateUserStatus = async (
-  uid: string,
-  status: "active" | "suspended" | "inactive"
-): Promise<void> => {
-  try {
-    const userRef = doc(db, "users", uid);
-    await updateDoc(userRef, { status });
-  } catch (error) {
-    console.error("Error updating user status:", error);
-    throw error;
-  }
-};
-
-export const updateUserPlan = async (
-  uid: string,
-  plan: string
-): Promise<void> => {
-  try {
-    const userRef = doc(db, "users", uid);
-    await updateDoc(userRef, { plan });
-  } catch (error) {
-    console.error("Error updating user plan:", error);
-    throw error;
-  }
-};
-
-export const updateCurrentUserPlan = async (planId: string): Promise<void> => {
-  try {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      throw new Error("No authenticated user found");
-    }
-
-    // Get plan details
-    const planDoc = await getDoc(doc(db, "plans", planId));
-    if (!planDoc.exists()) {
-      throw new Error("Plan not found");
-    }
-
-    const planData = planDoc.data();
-    const userRef = doc(db, "users", currentUser.uid);
-
-    // Update both plan name and planId
-    await updateDoc(userRef, {
-      plan: planData.name,
-      planId: planId,
-    });
-
-    // Increment user count and revenue for the plan
-    const planRef = doc(db, "plans", planId);
-    await updateDoc(planRef, {
-      users: (planData.users || 0) + 1,
-      revenue: (planData.revenue || 0) + planData.price,
-    });
-  } catch (error) {
-    console.error("Error updating current user plan:", error);
-    throw error;
-  }
-};
-
-export const updateCurrentUserDisplayName = async (
-  displayName: string
-): Promise<void> => {
-  try {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      throw new Error("No authenticated user found");
-    }
-
-    // Update Firebase Auth profile
-    await updateProfile(currentUser, { displayName });
-
-    // Update Firestore document
-    const userRef = doc(db, "users", currentUser.uid);
-    await updateDoc(userRef, { displayName });
-  } catch (error) {
-    console.error("Error updating current user display name:", error);
-    throw error;
-  }
-};
-
 export const getCurrentUserData = async (): Promise<UserData | null> => {
   try {
     const currentUser = auth.currentUser;
@@ -442,16 +361,6 @@ export const updateUserLastActive = async (uid: string): Promise<void> => {
   }
 };
 
-export const deleteUser = async (uid: string): Promise<void> => {
-  try {
-    const userRef = doc(db, "users", uid);
-    await deleteDoc(userRef);
-  } catch (error) {
-    console.error("Error deleting user:", error);
-    throw error;
-  }
-};
-
 export const getUsersByStatus = async (status: string): Promise<UserData[]> => {
   try {
     const usersRef = collection(db, "users");
@@ -486,17 +395,6 @@ export const getUsersByStatus = async (status: string): Promise<UserData[]> => {
     return users;
   } catch (error) {
     console.error("Error fetching users by status:", error);
-    throw error;
-  }
-};
-
-// Function to create an admin user (for testing purposes)
-export const createAdminUser = async (uid: string): Promise<void> => {
-  try {
-    const userRef = doc(db, "users", uid);
-    await updateDoc(userRef, { isAdmin: true });
-  } catch (error) {
-    console.error("Error creating admin user:", error);
     throw error;
   }
 };
@@ -619,56 +517,6 @@ export const getPlanById = async (planId: string): Promise<PlanData | null> => {
   }
 };
 
-export const createPlan = async (
-  planData: Omit<PlanData, "id" | "createdAt" | "updatedAt">
-): Promise<string> => {
-  try {
-    const plansRef = collection(db, "plans");
-    const newPlanRef = doc(plansRef);
-
-    const planWithTimestamps = {
-      ...planData,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-    };
-
-    await setDoc(newPlanRef, planWithTimestamps);
-    return newPlanRef.id;
-  } catch (error) {
-    console.error("Error creating plan:", error);
-    throw error;
-  }
-};
-
-export const updatePlan = async (
-  planId: string,
-  planData: Partial<PlanData>
-): Promise<void> => {
-  try {
-    const planRef = doc(db, "plans", planId);
-
-    const updateData = {
-      ...planData,
-      updatedAt: Timestamp.now(),
-    };
-
-    await updateDoc(planRef, updateData);
-  } catch (error) {
-    console.error("Error updating plan:", error);
-    throw error;
-  }
-};
-
-export const deletePlan = async (planId: string): Promise<void> => {
-  try {
-    const planRef = doc(db, "plans", planId);
-    await deleteDoc(planRef);
-  } catch (error) {
-    console.error("Error deleting plan:", error);
-    throw error;
-  }
-};
-
 export const getPlansByStatus = async (status: string): Promise<PlanData[]> => {
   try {
     const plansRef = collection(db, "plans");
@@ -732,76 +580,6 @@ export const testFirestoreAccess = async (): Promise<boolean> => {
   } catch (error) {
     console.error("Firestore access test failed:", error);
     return false;
-  }
-};
-
-export const createBot = async (
-  botData: Omit<BotData, "id" | "createdAt" | "updatedAt">
-): Promise<string> => {
-  try {
-    const botRef = doc(collection(db, "bots"));
-    const now = Timestamp.now();
-
-    const newBot = {
-      ...botData,
-      id: botRef.id,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await setDoc(botRef, newBot);
-
-    // Update user's bot count, add bot ID, and increment current month's bots in monthlyUsage
-    const userRef = doc(db, "users", botData.uid);
-    const userDoc = await getDoc(userRef);
-    if (userDoc.exists()) {
-      const userData = userDoc.data();
-      const currentBots = userData.bots || 0;
-      const currentBotIds = userData.botIds || [];
-      let monthlyUsage = userData.monthlyUsage || [];
-      // Find the current month entry
-      const now = new Date();
-      const month = now.getMonth() + 1;
-      const year = now.getFullYear();
-      let found = false;
-      monthlyUsage = monthlyUsage.map((entry: any) => {
-        if (entry.month === month && entry.year === year) {
-          found = true;
-          // Prefer botsPerMonth if present, else fallback to bots
-          if (typeof entry.botsPerMonth === "number") {
-            return { ...entry, botsPerMonth: entry.botsPerMonth + 1 };
-          } else {
-            return { ...entry, bots: (entry.bots || 0) + 1 };
-          }
-        }
-        return entry;
-      });
-      if (!found) {
-        // If no entry for this month, add one
-        const startDate = Timestamp.now();
-        const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
-        const endDate = Timestamp.fromDate(endOfMonth);
-        monthlyUsage.push({
-          month,
-          year,
-          bots: 0,
-          botsPerMonth: 1,
-          messages: 0,
-          startDate,
-          endDate,
-        });
-      }
-      await updateDoc(userRef, {
-        bots: currentBots + 1,
-        botIds: [...currentBotIds, botRef.id],
-        monthlyUsage,
-      });
-    }
-
-    return botRef.id;
-  } catch (error) {
-    console.error("Error creating bot:", error);
-    throw error;
   }
 };
 
@@ -894,89 +672,6 @@ export const getBotById = async (botId: string): Promise<BotData | null> => {
     return null;
   } catch (error) {
     console.error("Error fetching bot:", error);
-    throw error;
-  }
-};
-
-export const updateBot = async (
-  botId: string,
-  updates: Partial<BotData>
-): Promise<void> => {
-  try {
-    const botRef = doc(db, "bots", botId);
-    await updateDoc(botRef, {
-      ...updates,
-      updatedAt: Timestamp.now(),
-    });
-  } catch (error) {
-    console.error("Error updating bot:", error);
-    throw error;
-  }
-};
-
-export const deleteBot = async (botId: string, uid: string): Promise<void> => {
-  try {
-    const botRef = doc(db, "bots", botId);
-    await deleteDoc(botRef);
-
-    // Update user's bot count and remove bot ID from botIds array
-    const userRef = doc(db, "users", uid);
-    const userDoc = await getDoc(userRef);
-    if (userDoc.exists()) {
-      const currentBots = userDoc.data().bots || 0;
-      const currentBotIds = userDoc.data().botIds || [];
-      const updatedBotIds = currentBotIds.filter((id: string) => id !== botId); // Remove bot ID from array
-      await updateDoc(userRef, {
-        bots: Math.max(0, currentBots - 1),
-        botIds: updatedBotIds,
-      });
-    }
-  } catch (error) {
-    console.error("Error deleting bot:", error);
-    throw error;
-  }
-};
-
-export const updateBotWhatsAppStatus = async (
-  botId: string,
-  status: BotData["whatsapp"]["status"],
-  qrCode?: string
-): Promise<void> => {
-  try {
-    const botRef = doc(db, "bots", botId);
-    const updates: any = {
-      "whatsapp.status": status,
-      updatedAt: Timestamp.now(),
-    };
-
-    if (status === "connected") {
-      updates["whatsapp.lastConnected"] = Timestamp.now();
-      updates["whatsapp.qrCode"] = null;
-    } else if (qrCode) {
-      updates["whatsapp.qrCode"] = qrCode;
-    }
-
-    await updateDoc(botRef, updates);
-  } catch (error) {
-    console.error("Error updating bot WhatsApp status:", error);
-    throw error;
-  }
-};
-
-export const updateBotStats = async (
-  botId: string,
-  stats: Partial<BotData["stats"]>
-): Promise<void> => {
-  try {
-    const botRef = doc(db, "bots", botId);
-    await updateDoc(botRef, {
-      ...Object.fromEntries(
-        Object.entries(stats).map(([key, value]) => [`stats.${key}`, value])
-      ),
-      updatedAt: Timestamp.now(),
-    });
-  } catch (error) {
-    console.error("Error updating bot stats:", error);
     throw error;
   }
 };

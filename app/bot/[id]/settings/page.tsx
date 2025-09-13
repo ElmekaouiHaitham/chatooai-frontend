@@ -7,8 +7,6 @@ import ProtectedRoute from "../../../../components/ProtectedRoute";
 import { useAuth } from "../../../../contexts/AuthContext";
 import {
   getBotById,
-  updateBot,
-  deleteBot,
   BotData,
   getCurrentUserToken,
 } from "../../../../lib/firebase";
@@ -81,7 +79,7 @@ export default function BotSettingsPage() {
         personality: formData.personality!,
         autoReply: formData.autoReply!,
       };
-      const response = await fetch(`http://localhost:5000/bot/${bot.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/bot/${bot.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -99,29 +97,6 @@ export default function BotSettingsPage() {
       setError("Failed to save bot settings");
       setShowErrorDialog(true);
     } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!bot) return;
-
-    try {
-      setSaving(true);
-      setError("");
-
-      // Delete from WhatsApp service
-      // TODO: Uncomment when WhatsApp service is implemented
-      // await whatsappService.deleteBot(bot.id);
-
-      // Delete from Firebase
-      await deleteBot(bot.id, bot.uid);
-
-      // Redirect to dashboard
-      router.push("/dashboard");
-    } catch (err) {
-      console.error("Failed to delete bot:", err);
-      setError("Failed to delete bot");
       setSaving(false);
     }
   };
@@ -161,7 +136,9 @@ export default function BotSettingsPage() {
         {showErrorDialog && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Error</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Error
+              </h3>
               <p className="text-gray-600 mb-6">{error}</p>
               <div className="flex justify-end">
                 <button
@@ -206,7 +183,9 @@ export default function BotSettingsPage() {
           {showErrorDialog && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Error</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Error
+                </h3>
                 <p className="text-gray-600 mb-6">{error}</p>
                 <div className="flex justify-end">
                   <button
@@ -238,36 +217,6 @@ export default function BotSettingsPage() {
             </button>
           </div>
         </div>
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Delete Bot
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete "{bot.name}"? This action cannot
-                be undone.
-              </p>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? "Deleting..." : "Delete"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </ProtectedRoute>
   );

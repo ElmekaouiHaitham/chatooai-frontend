@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminNavigation from "../../../../components/AdminNavigation";
 import ProtectedRoute from "../../../../components/ProtectedRoute";
-import { createPlan } from "../../../../lib/firebase";
+import { getCurrentUserToken, getCurrentUserData } from "@/lib/firebase";
 
 interface PlanFormData {
   name: string;
@@ -102,8 +102,35 @@ export default function CreatePlanPage() {
         revenue: 0,
       };
 
-      await createPlan(planData);
-      router.push("/admin/plans");
+      try {
+        const token = await getCurrentUserToken();
+        const user = await getCurrentUserData();
+
+        const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/plan`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            uid: user?.uid,
+            planData: planData,
+          }),
+        });
+
+        if (!backendResponse.ok) {
+          const errorMessage = await backendResponse.json();
+          const displayMessage =
+            errorMessage.error || "An unknown error occurred.";
+          throw new Error(displayMessage);
+        }
+        router.push("/admin/plans");
+      } catch (error) {
+        console.error("Error creating plan:", error);
+        setError(
+          error instanceof Error ? error.message : "Failed to create plan"
+        );
+      }
     } catch (err: any) {
       console.error("Error creating plan:", err);
       setError(err.message || "Failed to create plan. Please try again.");
