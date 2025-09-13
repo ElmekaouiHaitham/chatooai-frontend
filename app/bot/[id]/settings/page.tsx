@@ -79,7 +79,7 @@ export default function BotSettingsPage() {
         personality: formData.personality!,
         autoReply: formData.autoReply!,
       };
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/bot/${bot.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bot/${bot.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

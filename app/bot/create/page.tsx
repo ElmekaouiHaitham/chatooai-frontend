@@ -50,7 +50,7 @@ export default function CreateBotPage() {
     setIsLoading(true);
     try {
       const token = await getCurrentUserToken();
-      const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/bot`, {
+      const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bot`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

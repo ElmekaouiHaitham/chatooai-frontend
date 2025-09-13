@@ -106,7 +106,7 @@ export default function CreatePlanPage() {
         const token = await getCurrentUserToken();
         const user = await getCurrentUserData();
 
-        const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/plan`, {
+        const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/plan`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

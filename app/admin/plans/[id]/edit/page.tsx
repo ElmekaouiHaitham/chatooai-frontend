@@ -149,7 +149,7 @@ export default function EditPlanPage({ params }: EditPlanPageProps) {
       const user = await getCurrentUserData();
 
       const backendResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/plan/${planId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/plan/${planId}`,
         {
           method: "PUT",
           headers: {
@@ -195,7 +195,7 @@ export default function EditPlanPage({ params }: EditPlanPageProps) {
         const user = await getCurrentUserData();
 
         const backendResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/plan/${planId}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/plan/${planId}`,
           {
             method: "DELETE",
             headers: {

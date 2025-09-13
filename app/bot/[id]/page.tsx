@@ -41,7 +41,7 @@ export default function BotDetailPage() {
     // Fetch fallback QR and bot name with auth
     (async () => {
       const token = await getCurrentUserToken();
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/qr/${botId}`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/qr/${botId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
         .then((res) => res.json())
@@ -182,7 +182,7 @@ export default function BotDetailPage() {
                       setError("");
                       try {
                         const token = await getCurrentUserToken();
-                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/bot/${bot.id}/disconnect`, {
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bot/${bot.id}/disconnect`, {
                           method: "POST",
                           headers: {
                             "Content-Type": "application/json",

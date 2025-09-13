@@ -140,7 +140,7 @@ export default function SignUpPage() {
       const uid = (await getCurrentUserData())?.uid;
 
       // Call backend API to update plan
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/user/${uid}/plan`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/${uid}/plan`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
