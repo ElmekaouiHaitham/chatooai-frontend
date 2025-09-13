@@ -34,38 +34,6 @@ ChartJS.register(
   Legend
 );
 
-const userGrowthData = [
-  { date: "2024-11-01", users: 1200 },
-  { date: "2024-11-02", users: 1210 },
-  { date: "2024-11-03", users: 1225 },
-  { date: "2024-11-04", users: 1235 },
-  { date: "2024-11-05", users: 1240 },
-  { date: "2024-11-06", users: 1245 },
-  { date: "2024-11-07", users: 1247 },
-  { date: "2024-11-08", users: 1250 },
-  { date: "2024-11-09", users: 1255 },
-  { date: "2024-11-10", users: 1260 },
-  { date: "2024-11-11", users: 1265 },
-  { date: "2024-11-12", users: 1270 },
-  { date: "2024-11-13", users: 1275 },
-  { date: "2024-11-14", users: 1280 },
-  { date: "2024-11-15", users: 1285 },
-  { date: "2024-11-16", users: 1290 },
-  { date: "2024-11-17", users: 1295 },
-  { date: "2024-11-18", users: 1300 },
-  { date: "2024-11-19", users: 1305 },
-  { date: "2024-11-20", users: 1310 },
-  { date: "2024-11-21", users: 1315 },
-  { date: "2024-11-22", users: 1320 },
-  { date: "2024-11-23", users: 1325 },
-  { date: "2024-11-24", users: 1330 },
-  { date: "2024-11-25", users: 1335 },
-  { date: "2024-11-26", users: 1340 },
-  { date: "2024-11-27", users: 1345 },
-  { date: "2024-11-28", users: 1350 },
-  { date: "2024-11-29", users: 1355 },
-  { date: "2024-11-30", users: 1360 },
-];
 
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db } from "../../lib/firebase";
