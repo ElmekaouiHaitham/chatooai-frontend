@@ -487,7 +487,7 @@ export default function Home() {
             <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-500 text-white text-2xl font-bold shadow-lg">C</span>
             <span className="text-xl font-bold text-green-400 tracking-wide">ChatTooAI</span>
           </div>
-          <p className="text-gray-400 text-sm mb-0">© 2024 ChatTooAI. All rights reserved.</p>
+          <p className="text-gray-400 text-sm mb-0">© 2025 ChatTooAI. All rights reserved.</p>
         </div>
       </footer>
     </div>

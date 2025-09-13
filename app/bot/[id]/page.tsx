@@ -24,7 +24,7 @@ export default function BotDetailPage() {
     if (!botId) return;
 
     // Connect WebSocket
-    const ws = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:5000");
+    const ws = new WebSocket(process.env.NEXT_PUBLIC_WS_URL!);
 
     ws.onopen = () => console.log(`WebSocket connected for bot ${botId}`);
 
