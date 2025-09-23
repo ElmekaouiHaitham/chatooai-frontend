@@ -54,6 +54,29 @@ export default function BotCard({ bot }: BotCardProps) {
     });
   };
 
+  const truncateDescription = (description: string) => {
+    if (!description) return "";
+    
+    // Split by sentences (period, exclamation, question mark)
+    const sentences = description.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    
+    // If 1 or fewer sentences, return as is
+    if (sentences.length <= 1) {
+      return description;
+    }
+    
+    // Return first sentence with proper punctuation
+    const firstSentence = sentences[0].trim();
+    let result = firstSentence;
+    
+    // Add period if it doesn't end with punctuation
+    if (!result.match(/[.!?]$/)) {
+      result += '.';
+    }
+    
+    return result;
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
       <div className="p-6">
@@ -65,7 +88,7 @@ export default function BotCard({ bot }: BotCardProps) {
                 {bot.name}
               </h3>
             </div>
-            <p className="text-gray-600 text-sm">{bot.description}</p>
+            <p className="text-gray-600 text-sm">{truncateDescription(bot.description)}</p>
           </div>
           <div className="ml-4">
             <span
