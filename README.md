@@ -8,8 +8,8 @@ This repository contains the browser-facing application only. WhatsApp sessions,
 
 - Frontend repository: [https://github.com/ElmekaouiHaitham/chatooai-frontend](https://github.com/ElmekaouiHaitham/chatooai-frontend)
 - Backend repository: [https://github.com/ElmekaouiHaitham/chatooai-backend](https://github.com/ElmekaouiHaitham/chatooai-backend)
-- Local demo URL: [http://localhost:3000](http://localhost:3000)
-- Live website: add the deployed frontend URL here when available.
+- Live website: [https://chatooai.vercel.app](https://chatooai.vercel.app)
+- Demo video: [https://www.youtube.com/watch?v=v2ytRQe4EOA](https://www.youtube.com/watch?v=v2ytRQe4EOA)
 
 ## Tech Stack
 
@@ -44,19 +44,19 @@ This repository contains the browser-facing application only. WhatsApp sessions,
 - Analytics page that reads usage and bot counts from Firestore.
 - Support page with a mailto-based contact form.
 
-## Partially Implemented Or Mocked
+## Things To Work On
 
-These areas exist in the UI, but should not be treated as production-complete:
+These are contribution opportunities. The UI already has a strong foundation, and the areas below are the best places to help move it toward a complete SaaS product:
 
 - Billing is mostly informational. There is no Stripe, PayPal, invoice, checkout, subscription cancellation, refund, tax, or payment-method integration.
 - Payment method UI is placeholder content.
 - Analytics are limited to stored Firestore usage counters and simple derived values. There is no deep WhatsApp conversation analytics, cohorting, attribution, or export workflow.
 - Plan limits are represented in Firestore and checked by the backend, but the subscription lifecycle is not fully automated.
-- Admin screens depend on Firestore data shape and basic admin flags. They are not a complete enterprise admin console.
+- Admin screens depend on Firestore data shape and basic admin flags. A fuller enterprise admin console would be a valuable contribution.
 - Support form opens the user's email client with a prefilled message. There is no ticketing backend.
 - Some UI pages are polished views over current data, but not every visible action is wired to a complete production workflow.
 
-## Not Implemented Yet
+## Bigger Feature Opportunities
 
 - Real payment processing.
 - Full subscription lifecycle management.
@@ -70,9 +70,9 @@ These areas exist in the UI, but should not be treated as production-complete:
 - Role/permission system beyond the current admin checks.
 - Production observability and audit logs.
 
-## Relationship To The Product Description
+## Product Direction
 
-The product description describes an optimal multi-bot WhatsApp chatbot system for agencies, SaaS providers, developers, and resellers. This frontend is a working foundation toward that product, not a finished marketplace-ready SaaS.
+The product description describes an optimal multi-bot WhatsApp chatbot system for agencies, SaaS providers, developers, and resellers. This frontend already covers the main dashboard and bot-management experience, and the remaining product gaps are great places for contributors to make a visible impact.
 
 Accurate today:
 
@@ -82,7 +82,7 @@ Accurate today:
 - AI bot configuration forms.
 - Admin and plan-management screens.
 
-Still future work:
+Good contribution targets:
 
 - "Unlimited" scale claims.
 - Complete billing.
@@ -119,7 +119,7 @@ Start the development server:
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open the development URL shown in your terminal.
 
 ## Environment Variables
 
@@ -134,8 +134,8 @@ All required variables are listed in [.env.example](./.env.example).
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Yes | Firebase messaging sender ID. |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | Yes | Firebase web app ID. |
 | `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | No | Firebase Analytics measurement ID. |
-| `NEXT_PUBLIC_API_URL` | Yes | Backend HTTP URL, for example `http://localhost:5000`. |
-| `NEXT_PUBLIC_WS_URL` | Yes | Backend WebSocket URL, for example `ws://localhost:5000`. |
+| `NEXT_PUBLIC_API_URL` | Yes | Backend HTTP URL. |
+| `NEXT_PUBLIC_WS_URL` | Yes | Backend WebSocket URL. |
 
 Because these variables use the `NEXT_PUBLIC_` prefix, they are exposed to the browser. Do not place private secrets or Firebase service account credentials in the frontend.
 
